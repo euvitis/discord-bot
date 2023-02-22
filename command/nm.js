@@ -6,6 +6,7 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('nm')
 		.setDescription('Night Market commands!'),
+
 	async execute(interaction) {
 		await interaction.reply('helloo marketeer!');
 	},
