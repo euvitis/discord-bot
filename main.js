@@ -31,9 +31,7 @@ client.once(Events.ClientReady, async c => {
 });
 
 client.on('messageCreate', async (message) => {
-    //console.log(message)
     if (message.channel.id === "bot-commands") {
-        // run code here
         console.log('hi')
     }
 })
