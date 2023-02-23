@@ -1,41 +1,14 @@
 require('./lib/dotenv');
 
-const { Client, Events, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { Client, Events, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder, SlashCommandBuilder, Collection } = require('discord.js');
 const { getValues } = require('./lib/sheets')
-// cdc: commented because we use env variables to pass token
-//const { token } = require('./config.json');
+const fs = require('node:fs');
+const path = require('node:path');
 
-const token = process.env.DISCORD_TOKEN;
+const token = process.env.DISCORD_TOKEN
+if (!token) console.err("ERR No Token Found! Read README.md for more information.")
 
-console.log(token)
-
-// Create a new client instance
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
-});
-
-// When the client is ready, run this code (only once)
-// We use 'c' for the event parameter to keep it separate from the already defined 'client'
-client.once(Events.ClientReady, async c => {
-    console.log(`Ready! Logged in as ${c.user.tag}`);
-
-    let channel = c.channels.cache.find(channel => channel.name === 'bot-commands');
-
-    // let thread = await channel.threads.create({
-    //     name: "friday 1.13 pickups",
-    // })
-});
-
-client.on('messageCreate', async (message) => {
-    if (message.channel.id === "bot-commands") {
-        console.log('hi')
-    }
-})
-
+// load orgs from spread sheet
 const orgsListP = getValues("Org!B2:B")
     .then(a => a.filter(a => a[0]))
     .then(a => a.map(a => (
@@ -46,24 +19,64 @@ const orgsListP = getValues("Org!B2:B")
         }
     )))
 
-client.on('messageCreate', async interaction => {
-    console.log(interaction.content)
-    //if (!interaction.isChatInputCommand()) return;
+// create a new client instance
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        // GatewayIntentBits.GuildMessages,
+        // GatewayIntentBits.MessageContent
+    ]
+});
 
-    const orgList = await orgsListP
-    console.log(orgList.slice(0, 10))
-    if (interaction.content === 'org') {
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new StringSelectMenuBuilder()
-                    .setCustomId('select')
-                    .setPlaceholder('Nothing selected')
-                    .addOptions(
-                        ...(orgList.slice(0, 10))
-                    ),
-            );
+function loadCommands() {
+    const commands = new Collection();
 
-        await interaction.reply({ content: 'Pong!', components: [row] });
+    const dir = path.join(__dirname, 'commands');
+    const files = fs.readdirSync(dir).filter(file => file.endsWith('.js'));
+
+    for (const file of files) {
+        const filePath = path.join(dir, file);
+        const command = require(filePath);
+
+        if ('data' in command && 'execute' in command) {
+            commands.set(command.data.name, command);
+        } else {
+            console.log(`WRN The command at ${filePath} is missing a required "data" or "execute" property.`);
+        }
+    }
+
+    return commands
+}
+
+client.commands = loadCommands();
+
+// when the client is ready, run this code (only once)
+// we use 'c' for the event parameter to keep it separate from the already defined 'client'
+client.once(Events.ClientReady, async c => {
+    console.log(`Ready! Logged in as ${c.user.tag}`);
+
+    let channel = c.channels.cache.find(channel => channel.name === 'bot-commands');
+
+    // let thread = await channel.threads.create({
+    //     name: "friday 1.13 pickups",
+    // })
+});
+
+client.on(Events.InteractionCreate, async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const command = interaction.client.commands.get(interaction.commandName);
+
+    if (!command) {
+        console.error(`No command matching ${interaction.commandName} was found.`);
+        return;
+    }
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(error);
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
     }
 });
 
