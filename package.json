@@ -4,8 +4,10 @@
   "description": "A discord bot for davis night market",
   "main": "main.js",
   "scripts": {
-    "start": "NODE_ENV=dev node main.js",
+    "start": "node main.js",
     "test": "jest",
+    "build": "tsc -p .",
+    "watch": "tsc -w -p . & NODE_ENV=dev nodemon",
     "format": "prettier --config .prettierrc 'src/**/*.ts' --write",
     "lint": "eslint . --ext .ts"
   },
