@@ -4,6 +4,7 @@ const { Client, Events, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBui
 const { getValues } = require('./lib/sheets')
 const fs = require('node:fs');
 const path = require('node:path');
+// require("./lib/commands");
 
 const token = process.env.DISCORD_TOKEN
 if (!token) console.err("ERR No Token Found! Read README.md for more information.")
@@ -76,7 +77,10 @@ client.on(Events.InteractionCreate, async interaction => {
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
-        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+        await interaction.reply({
+            content: 'There was an error while executing this command!',
+            ephemeral: true
+        });
     }
 });
 
