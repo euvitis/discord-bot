@@ -1,7 +1,7 @@
 require('./lib/dotenv');
-
+const NightMarketDataService = require('./lib/night-market-data.service')
 const { Client, Events, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const { getValues } = require('./lib/sheets')
+//const { getValues } = require('./lib/night-market-data.service')
 // cdc: commented because we use env variables to pass token
 //const { token } = require('./config.json');
 
@@ -36,8 +36,7 @@ client.on('messageCreate', async (message) => {
     }
 })
 
-const orgsListP = getValues("Org!B2:B")
-    .then(a => a.filter(a => a[0]))
+const orgsListP = NightMarketDataService.getOrgNameList()
     .then(a => a.map(a => (
         {
             label: a[0],
