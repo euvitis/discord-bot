@@ -54,11 +54,25 @@ export class NightMarketDataService {
   // TODO:
   // toggle a person state to active
   static async setPersonActiveState(email: string, activeState: string) {
-    if (!ACTIVE_STATE_LIST.indexOf(activeState)) {
+    if (ACTIVE_STATE_LIST.indexOf(activeState) < 0) {
       throw new Error('Must set active state');
     }
     // TODO:
     // get all the person rows
+    const personList = await GSpreadService.rangeGet(
+      'person!A:C',
+      GSPREAD_ID_CORE
+    );
+    email = email.toLowerCase().trim();
+    const rowIndex = personList?.findIndex(
+      (a) => a[2].toLowerCase().trim() === email
+    );
+    if (typeof rowIndex === 'undefined') {
+      throw new Error('person does not exists');
+    }
+    const range = 'person!A' + (rowIndex + 1);
+    await GSpreadService.rowsWrite([[activeState]], range, GSPREAD_ID_CORE);
+    return range;
     // find a match to email
     // update cell for active at row and column index (add method to GSpreadService)
   }
@@ -67,6 +81,7 @@ export class NightMarketDataService {
     if (!ACTIVE_STATE_LIST.indexOf(activeState)) {
       throw new Error('Must set active state');
     }
+
     // TODO:
     // get all the org rows
     // find a match to name

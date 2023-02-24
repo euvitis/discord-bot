@@ -21,7 +21,37 @@ export const GSpreadService = {
     console.log(`${numRows} rows retrieved.`);
     return result.data.values;
   },
+  rowsWrite: async (
+    values: string[][],
+    range: string,
+    spreadsheetId: string
+  ) => {
+    if (!values || !(values instanceof Array) || !values.length) {
+      throw new Error('Must pass a valid values');
+    }
 
+    validate(range, spreadsheetId);
+
+    const service = google.sheets({ version: 'v4', auth });
+
+    const resource = {
+      values
+    };
+    try {
+      const result = await gspread.spreadsheets.values.update({
+        spreadsheetId,
+        valueInputOption: 'RAW',
+        range,
+        requestBody: { values }
+      });
+
+      console.log('%d cells updated.', result.data.updatedCells);
+      return result;
+    } catch (err) {
+      // TODO (Developer) - Handle exception
+      throw err;
+    }
+  },
   rowsAppend: async (
     values: string[][],
     range: string,
