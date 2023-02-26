@@ -1,5 +1,5 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { getValues } = require('./lib/sheets')
+import { CacheType, ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+// import { getValues } from './lib/sheets';
 
 // how about we just use one command and switch depending on channel?
 
@@ -11,7 +11,7 @@ module.exports = {
 			.setDescription('Night Market commands!')
 	},
 
-	async execute(interaction) {
+	async execute(interaction: ChatInputCommandInteraction<CacheType>) {
 		await interaction.reply('helloo marketeer!');
 	},
 };
