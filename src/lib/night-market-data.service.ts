@@ -42,6 +42,7 @@ export async function getPersonNameList() {
             .then((a) => a?.filter((b: string[]) => b[0].trim()) || [])
     );
 }
+
 // TODO:
 // toggle a person state to active
 export async function setPersonActiveState(email: string, activeState: string) {

@@ -17,9 +17,7 @@ module.exports = {
                     .setName('org')
                     .setDescription('Who gave us this food?')
                     .setRequired(true)
-                    .addChoices(
-                        ...orgs.map((org) => ({ name: org, value: org }))
-                    )
+                    .addChoices(...orgs.map((name) => ({ name, value: name })))
             )
             .addNumberOption((option) =>
                 option
