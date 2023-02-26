@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+import { CacheType, ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 module.exports = {
     async get_data() {
@@ -21,7 +21,7 @@ module.exports = {
             )
     },
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction<CacheType>) {
         await interaction.reply(`${interaction.options.getString("org")} gave us ${interaction.options.getNumber("amount")} ibs`);
     },
 };
