@@ -1,4 +1,4 @@
-import { loadCommands } from './lib/commands';
+import { loadCommands, publishCommands } from './lib/commands';
 import { DISCORD_TOKEN } from './lib/dotenv';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 
@@ -8,6 +8,7 @@ async function main() {
     });
 
     const commands = await loadCommands();
+    // publishCommands(commands);
 
     client.once(Events.ClientReady, async (c) => {
         console.log(`Ready! Logged in as ${c.user.tag}`);

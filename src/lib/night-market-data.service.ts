@@ -30,8 +30,15 @@ export async function appendFoodCount(rows: string[][]) {
 }
 
 export async function getOrgNameList(): Promise<string[]> {
-    return await GSpreadService.rangeGet('Org!B3:B', GSPREAD_ID_CORE).then(
-        (table) => table?.map((row) => row[0]) ?? []
+    return await GSpreadService.rangeGet('Org!A3:B', GSPREAD_ID_CORE).then(
+        (table) =>
+            table?.flatMap(([status, name]) => {
+                if (status == 'active') {
+                    return [name];
+                } else {
+                    return [];
+                }
+            }) ?? []
     );
 }
 

@@ -28,10 +28,8 @@ module.exports = {
     },
 
     async execute(interaction: ChatInputCommandInteraction<CacheType>) {
-        await interaction.reply(
-            `${interaction.options.getString(
-                'org'
-            )} gave us ${interaction.options.getNumber('amount')} ibs`
-        );
+        const org = interaction.options.getString('org');
+        const amu = interaction.options.getString('amount');
+        await interaction.reply(`${org} gave us ${amu} lbs`);
     }
 };
