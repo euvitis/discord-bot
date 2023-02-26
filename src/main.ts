@@ -19,7 +19,9 @@ async function main() {
         const command = commands.get(interaction.commandName);
 
         if (!command) {
-            console.error(`No command matching ${interaction.commandName} was found.`);
+            console.error(
+                `No command matching ${interaction.commandName} was found.`
+            );
             return;
         }
 
@@ -38,4 +40,4 @@ async function main() {
     client.login(DISCORD_TOKEN);
 }
 
-main()
+main();
