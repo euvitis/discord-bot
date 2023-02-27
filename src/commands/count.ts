@@ -3,7 +3,10 @@ import {
     ChatInputCommandInteraction,
     SlashCommandBuilder
 } from 'discord.js';
-import { getOrgNameList } from '../lib/night-market-data.service';
+import {
+    appendFoodCount,
+    getOrgNameList
+} from '../lib/night-market-data.service';
 
 module.exports = {
     async get_data() {
@@ -28,8 +31,25 @@ module.exports = {
     },
 
     async execute(interaction: ChatInputCommandInteraction<CacheType>) {
+        // Get the params. They should be pre verfied by discord
         const org = interaction.options.getString('org');
-        const amu = interaction.options.getString('amount');
+        const amu = interaction.options.getNumber('amount');
+
+        if (!org || !amu) {
+            return
+        }
+
+        // report back to the discord
         await interaction.reply(`${org} gave us ${amu} lbs`);
+
+        const date = new Date();
+
+        // update the spread sheet
+        appendFoodCount([{
+            org,
+            quantity: String(amu),
+            date: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+            unit: 'lbs'
+        }]);
     }
 };
