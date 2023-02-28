@@ -32,18 +32,18 @@ export async function appendFoodCount(counts: FoodCount[]) {
     const rows = counts.map((count) => [
         count.org,
         count.date,
-        count.item ?? "",
+        count.item ?? '',
         count.unit,
         count.quantity,
-        count.coordinator ?? "",
-        count.captain ?? ""
+        count.coordinator ?? '',
+        count.captain ?? ''
     ]);
 
     return rowsAppend(rows, sheet, GSPREAD_ID_FOOD_COUNT);
 }
 
 export async function getOrgNameList(): Promise<string[]> {
-    return await rangeGet('Org!A3:B', GSPREAD_ID_CORE).then(
+    return await rangeGet('org!A3:B', GSPREAD_ID_CORE).then(
         (table) =>
             table?.flatMap(([status, name]) => {
                 if (status == 'active') {
