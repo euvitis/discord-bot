@@ -63,15 +63,16 @@ export async function getPersonNameList() {
     );
 }
 
-// TODO:
 // toggle a person state to active
 export async function setPersonActiveState(email: string, activeState: string) {
     if (ACTIVE_STATE_LIST.indexOf(activeState) < 0) {
         throw new Error('Must set active state');
     }
-    // TODO:
     // get all the person rows
     const personList = await rangeGet('person!A:C', GSPREAD_ID_CORE);
+
+    // find a match to email
+    // TODO: implement user id from discord?
     email = email.toLowerCase().trim();
     const rowIndex = personList?.findIndex(
         (a) => a[2].toLowerCase().trim() === email
@@ -80,10 +81,10 @@ export async function setPersonActiveState(email: string, activeState: string) {
         throw new Error('person does not exists');
     }
     const range = 'person!A' + (rowIndex + 1);
+
+    // update cell for active at row and column index (add method to GSpreadService)
     await rowsWrite([[activeState]], range, GSPREAD_ID_CORE);
     return range;
-    // find a match to email
-    // update cell for active at row and column index (add method to GSpreadService)
 }
 
 // toggle an org state to active
