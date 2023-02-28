@@ -12,14 +12,15 @@ You need npm installed and the code downloaded
 
 ### Step #2: Configure it
 
-Create a file called config.json.
+Create a file called `.env`
 It should look like this:
 
 ```
-{
-    "token": "<the secret token>"
-}
+DISCORD_TOKEN=<the secret token>
+DISCORD_CLIENT_ID=1055518718244966471
 ```
+
+Then gets the keys.json for google from someone who allready has them (we need a better way of sharing secrets in the future).
 
 ### Step #3: Run it!
 
