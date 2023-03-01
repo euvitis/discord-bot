@@ -9,22 +9,68 @@ import {
     // appendFoodCount,
     getOrgNameList
 } from '../lib/night-market-data.service';
+import { ParseContentService } from '../lib';
 import FuzzySearch from 'fuzzy-search'; // Or: var FuzzySearch = require('fuzzy-search');
+import dateFormat from 'dateformat';
+// OK, we need a refactor to make pretty.
 
-let CountData = [0, '', ''],
-    // todo: expire our count event data?
-    CountDataTimestamp = Date.now();
+// here we keep the initial call, and the response identifiers
+// so we can delete them later if needed.
+const ResponseCache: [number, number] = [0, 0],
+    // we reset the ResponseCache after a set expiry
+    RESPONSE_CACHE_EXPIRY = 1000 * 60, // one minute
+    ResponseCacheTimeout = Date.now(),
+    CHANNEL_NAME = 'bot-commands';
+// ref: delete a message
+//channel.fetchMessage(lastmsg).then(msg => msg.delete());
+// ref: get a channel
+//  let channel = message.guild.channels.find(
+//     channel => channel.name.toLowerCase() === "information"
+// )
+
+let CountData: [number, string, string] = [
+    // amount in lbs
+    0,
+    // org pickup
+    '',
+    // date MM/DD/YYYY
+    ''
+];
+
+// TODO: we may want to allow any of the night cap "day" channels to receive count so that we automatically know the date
 
 export const FoodCountEvent = async (message: any) => {
     const { channel, author, content } = message;
-    if (channel.name !== 'bot-commands' || author.bot) {
-        //For a single channel listener.
+
+    // if we are not in the right channel exit
+    if (CHANNEL_NAME !== channel.name) {
+        // exit
         return;
     }
 
-    // get count
-    const [lbsCount, filterString] = ParseLbsFromContent(content);
-    console.log(lbsCount, filterString);
+    // if we are a bot, we do not want to process the message, but
+    // we might want to store the message id
+    if (author.bot) {
+        // todo: if we are a bot, we want to store the message and delete it later
+        // if there is an existing message ...
+        if (ResponseCache[0]) {
+            // set the message id so we can delete it later?
+            ResponseCache[1] = message.id;
+            // todo: and reset the expiry?
+        }
+        return;
+    }
+    // in this case the message comes from the user
+    // so we keep it, in case they "cancel", or in case it is invalid
+    ResponseCache[0] = message.id;
+
+    // get number of lbs and the remaining string
+    const [lbsCount, filterLbsString] =
+        ParseContentService.getLbsAndString(content);
+
+    // get the date if it exists (defaults to today) and the remaining string
+    const [dateString, filterString] =
+        ParseContentService.getDateFromString(filterLbsString);
 
     const orgList = await getOrgNameList();
 
@@ -59,7 +105,7 @@ export const FoodCountEvent = async (message: any) => {
         );
     }
 
-    CountData = [lbsCount, orgDisplayList[0].value, Date.now()];
+    CountData = [lbsCount, orgDisplayList[0].value, dateString];
 
     const rowOrg = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
@@ -96,18 +142,20 @@ export const FoodCountEvent = async (message: any) => {
     );
 
     // todo: get user entered date, dynamic generate a dates list of maybe two weeks past, relative to today
-    const dateList = [
-        '02/12/2023',
-        '02/13/2023',
-        '02/14/2023',
-        '02/15/2023',
-        '02/16/2023',
-        '02/17/2023'
-    ].map((a) => ({
-        label: a,
-        description: `On the date of ${a}`,
-        value: a
-    }));
+    const d = Date.now();
+    const dateList = [...Array(14 + 1).keys()]
+        .map((a) => {
+            d - a * 24 * 1000;
+            return dateFormat(
+                new Date(d - a * 24 * 60 * 60 * 1000),
+                'dd/mm/yyyy'
+            );
+        })
+        .map((a) => ({
+            label: a,
+            description: `On the date of ${a}`,
+            value: a
+        }));
     const rowDate = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('count-select-date')
@@ -147,65 +195,4 @@ export const FoodCountConfirmEvent = async (interaction: any) => {
             content: `OK, we have ${CountData[0]} lbs from ${CountData[1]} on  ${CountData[2]}, is that correct?`
         });
     }
-};
-
-// utils
-const ParseLbsFromContent = (content: string): [number, string] => {
-    const contentList = content.split(' ').filter((a: string) => a.trim());
-    let lbsCount = ParseLbsFromCountString(contentList[0]);
-    // in this case the number was first
-    if (lbsCount) {
-        // get rid of the number
-        contentList.shift();
-        // get rid of any lbs or pounds text
-        if (
-            contentList[0].toLowerCase() === 'lbs' ||
-            contentList[0].toLowerCase() === 'pounds'
-        ) {
-            contentList.shift();
-        }
-        return [lbsCount, contentList.join(' ')];
-    }
-
-    // in this case the number was last
-    lbsCount = ParseLbsFromCountString(contentList[contentList.length - 1]);
-    if (lbsCount) {
-        // get rid of the number
-        contentList.shift();
-        return [lbsCount, contentList.join(' ')];
-    }
-
-    // in this case the number was second to last, and it needs to be followed by a lbs or pounds
-    lbsCount = ParseLbsFromCountString(contentList[contentList.length - 2]);
-    if (lbsCount) {
-        if (
-            contentList[0].toLowerCase() === 'lbs' ||
-            contentList[0].toLowerCase() === 'pounds'
-        ) {
-            // get rid of the pounds or lbs
-            contentList.shift();
-            // get rid of the number
-            contentList.shift();
-            return [lbsCount, contentList.join(' ')];
-        }
-    }
-    // in this case there was no number, so we return a falsy zero and let them pick one
-    return [lbsCount || 0, contentList.join(' ')];
-};
-
-// todo:test this
-const ParseLbsFromCountString = (countString: string): number => {
-    let countNumber = 0;
-    for (let a = 0; a < countString.length; a++) {
-        // if the first char is not a number, return zero
-        const b = +countString[a];
-        if (!a && isNaN(b)) {
-            a = countString.length;
-        } else {
-            if (!isNaN(b)) {
-                countNumber = +(countNumber + '' + b);
-            }
-        }
-    }
-    return countNumber;
 };
