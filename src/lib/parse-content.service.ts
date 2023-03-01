@@ -1,3 +1,4 @@
+import dateFormat from 'dateformat';
 export class ParseContentService {
     static getLbsAndString(content: string): [number, string] {
         const contentList = content.split(' ').filter((a: string) => a.trim());
@@ -64,16 +65,38 @@ export class ParseContentService {
     }
 
     // simply parse for a date that looks like MM/DD or MM/DD/YYYY
-    static getDateFromString(s: string) {
+
+    // todo: i think this sucks. there must be an easier way to do this, like just ask them for the date in the confirm?
+    static getDateFromString(s: string): [string, string] {
         let n = '';
+        const d = new Date();
         const t = s.split(' ').filter((a) => a);
         const i = t.findIndex((a) => a.split('/').length > 1);
-        if (i < 0) {
-            // there is no date proper in here
-            return n;
+        if (i >= 0) {
+            // there is a date proper in here, let us take it off of t
+            const u = t.splice(i, 1).pop() || '';
+            const v = u.split('/');
+            if (v.length === 2) {
+                if (v[0].length === 2 && v[1].length === 2) {
+                    // ok good enough
+                    n = v.join('/') + '/' + d.getFullYear();
+                }
+            } else if (v.length === 3) {
+                if (
+                    v[0].length === 2 &&
+                    v[1].length === 2 &&
+                    v[2].length === 4
+                ) {
+                    // ok good enough
+                    n = v.join('/');
+                }
+            }
         }
 
-        n = t.splice(i, 1).pop() || '';
-        return n;
+        return [
+            n || dateFormat(new Date(), 'mm/dd/yyyyy'),
+            // at this point t has had the date string removed
+            t.join(' ')
+        ];
     }
 }
