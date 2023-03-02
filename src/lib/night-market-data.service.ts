@@ -8,7 +8,7 @@ import {
 
 const GSPREAD_ID_CORE = '17-BwSUuXOD_mawagA_cEjP9kVkWCC_boCUV_FikeDek';
 const GSPREAD_ID_FOOD_COUNT = '1uHQ6oL84fxlu3bXYxPIU7s1-T2RX0uWzCNC1Hxs8sMM';
-const ACTIVE_STATE_LIST = ['inactive', 'active'];
+const ACTIVE_STATE_LIST = ['active', 'inactive'];
 
 interface FoodCount {
     org: string;
@@ -43,16 +43,19 @@ export async function appendFoodCount(counts: FoodCount[]) {
 }
 
 export async function getOrgNameList(): Promise<string[]> {
-    return await rangeGet('org!A3:B', GSPREAD_ID_CORE).then(
-        (table) =>
-            table?.flatMap(([status, name]) => {
-                if (status == 'active') {
-                    return [name];
-                } else {
-                    return [];
-                }
-            }) ?? []
-    );
+    const r = ((await rangeGet('org!A3:B', GSPREAD_ID_CORE)) || []) as [
+        string,
+        string
+    ][];
+
+    return r
+        .map(([status, name]: [string, string]) => {
+            if (status == ACTIVE_STATE_LIST[0]) {
+                return name;
+            }
+            return '';
+        })
+        .filter((a) => a);
 }
 
 export async function getPersonNameList() {
@@ -75,7 +78,7 @@ export async function setPersonActiveState(email: string, activeState: string) {
     // TODO: implement user id from discord?
     email = email.toLowerCase().trim();
     const rowIndex = personList?.findIndex(
-        (a) => a[2].toLowerCase().trim() === email
+        (a: string[]) => a[2].toLowerCase().trim() === email
     );
     if (typeof rowIndex === 'undefined') {
         throw new Error('person does not exists');
@@ -88,7 +91,7 @@ export async function setPersonActiveState(email: string, activeState: string) {
 }
 
 // toggle an org state to active
-export async function setOrgActiveState(name: string, activeState: string) {
+export async function setOrgActiveState(_name: string, activeState: string) {
     if (!ACTIVE_STATE_LIST.indexOf(activeState)) {
         throw new Error('Must set active state');
     }
