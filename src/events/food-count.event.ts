@@ -8,7 +8,8 @@ import {
     MessageReplyOptions,
     ButtonStyle,
     ButtonInteraction,
-    Interaction
+    Interaction,
+    TextChannel
 } from 'discord.js';
 import {
     // appendFoodCount,
@@ -25,6 +26,7 @@ const ResponseCache: {
             row: string;
             messageInputId: string;
             messageResponseId: string;
+            messageCountId: string;
             stamp: number;
         };
     } = {},
@@ -58,16 +60,6 @@ const ResponseCache: {
 //  let channel = message.guild.channels.find(
 //     channel => channel.name.toLowerCase() === "information"
 // )
-
-// we want to store the count data for a period of time
-let CountData: [number, string, string] = [
-    // amount in lbs
-    0,
-    // org pickup
-    '',
-    // date MM/DD/YYYY
-    ''
-];
 
 // TODO: we may want to allow any of the night cap "day" channels to receive count so that we automatically know the date
 
@@ -162,12 +154,11 @@ Please enter food count like this:
         hasNightChannelTrigger ? 'foodcount ' : ''
     }<number of pounds> <pickup name>"
     Example: "8 Village Bakery"`
-            //components: [rowLbs, rowOrg, rowDate]
         });
         return;
     }
 
-    CountData = [lbsCount, orgDisplayList[0].value, dateString];
+    const orgName = orgDisplayList[0].value;
 
     // const rowOrg = new ActionRowBuilder().addComponents(
     //     new StringSelectMenuBuilder()
@@ -198,7 +189,7 @@ Please enter food count like this:
     //     new StringSelectMenuBuilder()
     //         .setCustomId('count-select-lbs')
     //         .setPlaceholder(
-    //             CountData[0] ? '' + CountData[0] : 'No lbs selected'
+    //             lbsCount ? '' + lbsCount : 'No lbs selected'
     //         )
     //         .addOptions(...lbsList)
     // );
@@ -231,38 +222,49 @@ Please enter food count like this:
         row: '', // the row in gspread that we inserted,
         messageInputId: message.id,
         messageResponseId: '',
+        messageCountId: '',
         stamp: Date.now() / 1000
     };
     const reply: MessageReplyOptions = {
-        content: `OK, we have ${CountData[0]} lbs from ${CountData[1]} on  ${CountData[2]}.`,
-        components: []
+        content: `OK, we have ${lbsCount} lbs from ${orgName} on ${dateString}.`,
+        components: [
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder()
+                    // todo: I guess we can cat the spreadsheet row to the custom id and delete it on cancel
+                    .setCustomId(`food-count-cancel--${cacheId}`)
+                    .setLabel('delete')
+                    .setStyle(ButtonStyle.Danger)
+            )
+        ]
     };
 
-    if (!hasNightChannelTrigger) {
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-                // todo: I guess we can cat the spreadsheet row to the custom id and delete it on cancel
-                .setCustomId(`food-count-cancel--${cacheId}`)
-                .setLabel('delete')
-                .setStyle(ButtonStyle.Danger)
-        );
+    // if (!hasNightChannelTrigger) {
+    //     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    //         new ButtonBuilder()
+    //             // todo: I guess we can cat the spreadsheet row to the custom id and delete it on cancel
+    //             .setCustomId(`food-count-cancel--${cacheId}`)
+    //             .setLabel('delete')
+    //             .setStyle(ButtonStyle.Danger)
+    //     );
 
-        reply.components?.push(row);
-    }
+    //     reply.components?.push(row);
+    // }
 
     const messageReply = await message.reply(reply);
 
     // because we want to delete this message on cancel, or when the expiration passes
     ResponseCache[cacheId].messageResponseId = messageReply.id;
 
-    // todo: do we want to post everything in food count?
-    // const countChannel = message.guild?.channels.resolve(
-    //     '1037875813284057178'
-    // ) as TextChannel;
-
-    // countChannel?.send({
-    //     content: `OK, we have ${CountData[0]} lbs from ${CountData[1]} on  ${CountData[2]}.`
-    // });
+    if (hasNightChannelTrigger) {
+        // todo: do we want to post everything in food count?
+        const countChannel = (await message.guild?.channels.cache.find(
+            (channel) => channel.name === COUNT_CHANNEL_NAME
+        )) as TextChannel;
+        const countMessage = await countChannel?.send(
+            `We got ${lbsCount} lbs from ${orgName} on  ${dateString}.`
+        );
+        ResponseCache[cacheId].messageCountId = countMessage.id;
+    }
 };
 
 export const FoodCountCancelEvent = async (i: Interaction) => {
@@ -275,8 +277,6 @@ export const FoodCountCancelEvent = async (i: Interaction) => {
         if (!ResponseCache[idCache]) {
             return;
         }
-        console.log(ResponseCache, idCache);
-
         m?.fetch(ResponseCache[idCache].messageInputId).then((msg: Message) =>
             msg.delete()
         );
@@ -284,6 +284,16 @@ export const FoodCountCancelEvent = async (i: Interaction) => {
         m?.fetch(ResponseCache[idCache].messageResponseId).then(
             (msg: Message) => msg.delete()
         );
+        // delete any posting in the food count that came from the night channels
+        if (ResponseCache[idCache].messageCountId) {
+            const countChannel = (await interaction.guild?.channels.cache.find(
+                (channel) => channel.name === COUNT_CHANNEL_NAME
+            )) as TextChannel;
+
+            countChannel.messages
+                ?.fetch(ResponseCache[idCache].messageCountId)
+                .then((msg: Message) => msg.delete());
+        }
         // todo: delete row from spread
         await interaction.deferUpdate();
     }
@@ -304,7 +314,7 @@ export const FoodCountCancelEvent = async (i: Interaction) => {
     //     });
     // } else {
     //     await interaction.reply({
-    //         content: `OK, we have ${CountData[0]} lbs from ${CountData[1]} on  ${CountData[2]}, is that correct?`
+    //         content: `OK, we have ${lbsCount} lbs from ${CountData[1]} on  ${CountData[2]}, is that correct?`
     //     });
     // }
 };
