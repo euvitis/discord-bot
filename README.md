@@ -1,8 +1,8 @@
 # Night Market Discord Bot
 
-## What does this do?
+## What does the bot do?
 
-Let's play around and figure out what we want it to do.
+It's current main feature is to help people add to the food count, but it's always open to suggestions! 
 
 ## How do I run it?
 
