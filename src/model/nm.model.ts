@@ -6,3 +6,5 @@ export type DayNameType =
     | 'thursday'
     | 'friday'
     | 'saturday';
+
+export type ActiveStateType = 'active' | 'inactive';

@@ -1,4 +1,4 @@
-import { DayNameType } from '../model/night-market.model';
+import { DayNameType } from '../model/nm.model';
 
 export class ParseContentService {
     static dateFormat(date: Date) {

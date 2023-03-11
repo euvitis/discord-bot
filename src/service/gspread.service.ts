@@ -16,7 +16,7 @@ export async function rangeGet(range: string, spreadsheetId: string) {
         range
     });
 
-    return result.data.values;
+    return result.data.values || [];
 }
 
 export async function rowsWrite(
@@ -44,18 +44,25 @@ export async function rowsWrite(
         });
 
         console.log('%d cells updated.', result.data.updatedCells);
-        return result;
+        return result.data.updatedRange;
     } catch (err) {
         // TODO (Developer) - Handle exception
         throw err;
     }
 }
 
+/**
+ *
+ * @param values string values to insert in sheet
+ * @param range where in the sheet to insert
+ * @param spreadsheetId which spreadsheet to insert
+ * @returns range that was affected
+ */
 export async function rowsAppend(
-    values: string[][],
+    values: (string | number)[][],
     range: string,
     spreadsheetId: string
-) {
+): Promise<string> {
     if (!values || !(values instanceof Array) || !values.length) {
         throw new Error('Must pass a valid values');
     }
@@ -73,13 +80,35 @@ export async function rowsAppend(
                 if (err) {
                     x(err);
                 }
-                r(response);
+                r(response.data.updates.updatedRange);
             }
         );
     });
 }
 
-export async function sheetExists(title: string, spreadsheetId: string) {
+export async function sheetExists(
+    title: string,
+    spreadsheetId: string
+): Promise<boolean> {
+    try {
+        const id = await getSheetIdByName(title, spreadsheetId);
+        const request = {
+            spreadsheetId,
+            ranges: [title],
+            includeGridData: false
+        };
+        // if we get a positive number the sheet exists
+        return id >= 0;
+    } catch (e) {
+        // if we get an error the sheet does not exist
+        return false;
+    }
+}
+
+export async function getSheetIdByName(
+    title: string,
+    spreadsheetId: string
+): Promise<number | void> {
     try {
         const request = {
             spreadsheetId,
@@ -88,14 +117,33 @@ export async function sheetExists(title: string, spreadsheetId: string) {
         };
 
         const res = await gspread.spreadsheets.get(request);
-        return (
-            (res.data.sheets?.length &&
-                res.data.sheets[0]?.properties?.sheetId) ||
-            null
-        );
+        if (
+            !res?.data?.sheets?.length ||
+            (!res?.data?.sheets[0]?.properties?.sheetId &&
+                !(res?.data?.sheets[0]?.properties?.sheetId || 0 >= 0))
+        ) {
+            throw new Error(
+                `Sheet ${title} does not exist in spreadsheet ${spreadsheetId}`
+            );
+        }
+
+        return res?.data?.sheets[0]?.properties?.sheetId || 0;
     } catch (e) {
-        return null;
+        throw e;
     }
+}
+
+export async function sheetCreateIfNone(
+    title: string,
+    spreadsheetId: string
+): Promise<boolean> {
+    // we create a new sheet every year, so we test if the sheet exists, and create it if not
+    if (!(await sheetExists(title, spreadsheetId))) {
+        await sheetCreate(title, spreadsheetId);
+
+        return true;
+    }
+    return false;
 }
 
 export async function sheetCreate(title: string, spreadsheetId: string) {
@@ -117,12 +165,40 @@ export async function sheetCreate(title: string, spreadsheetId: string) {
             auth
         };
 
-        const resp = await gspread.spreadsheets.batchUpdate(request);
+        await gspread.spreadsheets.batchUpdate(request);
+        return true;
     } catch (error) {
         console.log(error);
     }
+    return false;
 }
 
+export async function sheetDestroy(title: string, spreadsheetId: string) {
+    validate(title, spreadsheetId);
+
+    try {
+        const sheetId = await getSheetIdByName(title, spreadsheetId);
+        const request = {
+            spreadsheetId,
+            resource: {
+                requests: [
+                    {
+                        deleteSheet: {
+                            sheetId
+                        }
+                    }
+                ]
+            },
+            auth
+        };
+
+        await gspread.spreadsheets.batchUpdate(request);
+        return true;
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+}
 // abstract out test for range and spreadsheetId
 function validate(range: string, spreadsheetId: string) {
     if (!range) {

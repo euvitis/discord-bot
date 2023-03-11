@@ -1,5 +1,5 @@
 import { FoodCountEvent, FoodCountCancelEvent } from './events';
-import { DISCORD_TOKEN } from './lib/dotenv';
+import { DISCORD_TOKEN } from './service/dotenv';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 
 async function main() {

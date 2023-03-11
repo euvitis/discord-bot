@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
-import { ParseContentService } from '../src/lib';
+import { ParseContentService } from '../src/service';
 
 describe('ParseContentService', () => {
     test('getting the right date format', async () => {

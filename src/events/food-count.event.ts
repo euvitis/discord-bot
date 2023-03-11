@@ -14,16 +14,20 @@ import {
 import {
     // appendFoodCount,
     getOrgNameList
-} from '../lib/night-market-data.service';
-import { ParseContentService } from '../lib';
+} from '../service/nm-org.service';
+import {
+    appendFoodCount,
+    deleteLastFoodCount,
+    ParseContentService
+} from '../service/index';
 import FuzzySearch from 'fuzzy-search'; // Or: var FuzzySearch = require('fuzzy-search');
-import { DayNameType } from '../model/night-market.model';
+import { DayNameType } from '../model/nm.model';
 import { v4 as uuidv4 } from 'uuid';
 // here we keep the initial call, and the response identifiers
 // so we can delete them later if needed.
 const ResponseCache: {
         [k in string]: {
-            row: string;
+            range: string;
             messageInputId: string;
             messageResponseId: string;
             messageCountId: string;
@@ -129,8 +133,13 @@ Please enter food count like this:
         return;
     }
 
-    const orgList = await getOrgNameList();
-    console.log(orgList);
+    const orgList = await getOrgNameList({
+        // we want ALL the orgs, not just active, because
+        // this fuzzy search should provide the best options without
+        // making user activate in the central spread
+        active: false
+    });
+
     const searcher = new FuzzySearch(orgList, [], {
         caseSensitive: false,
         sort: true
@@ -158,7 +167,7 @@ Please enter food count like this:
         return;
     }
 
-    const orgName = orgDisplayList[0].value;
+    const org = orgDisplayList[0].value;
 
     // const rowOrg = new ActionRowBuilder().addComponents(
     //     new StringSelectMenuBuilder()
@@ -219,14 +228,21 @@ Please enter food count like this:
 
     const cacheId = uuidv4(); // ⇨ '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'
     ResponseCache[cacheId] = {
-        row: '', // the row in gspread that we inserted,
+        range: await appendFoodCount({
+            org,
+            date: dateString,
+            // todo: get from core
+            reporter: 'christianco@gmail.com',
+            lbs: lbsCount,
+            note: ''
+        }), // the row in gspread that we inserted,
         messageInputId: message.id,
         messageResponseId: '',
         messageCountId: '',
         stamp: Date.now() / 1000
     };
     const reply: MessageReplyOptions = {
-        content: `OK, we have ${lbsCount} lbs from ${orgName} on ${dateString}.`,
+        content: `OK, we have ${lbsCount} lbs from ${org} on ${dateString}.`,
         components: [
             new ActionRowBuilder<ButtonBuilder>().addComponents(
                 new ButtonBuilder()
@@ -261,7 +277,7 @@ Please enter food count like this:
             (channel) => channel.name === COUNT_CHANNEL_NAME
         )) as TextChannel;
         const countMessage = await countChannel?.send(
-            `We got ${lbsCount} lbs from ${orgName} on  ${dateString}.`
+            `We got ${lbsCount} lbs from ${org} on  ${dateString}.`
         );
         ResponseCache[cacheId].messageCountId = countMessage.id;
     }
@@ -295,6 +311,10 @@ export const FoodCountCancelEvent = async (i: Interaction) => {
                 .then((msg: Message) => msg.delete());
         }
         // todo: delete row from spread
+        // todo: actually, we want to store the range in the spread and delete that
+        // rather than delete the last entry, since the ability to delete persists
+        deleteLastFoodCount();
+
         await interaction.deferUpdate();
     }
 

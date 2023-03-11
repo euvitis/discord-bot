@@ -1,1 +1,1 @@
-export * from './night-market.model';
+export * from './nm.model';
