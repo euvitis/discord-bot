@@ -1,4 +1,4 @@
-import { ActiveStateType } from './model/nm.model';
+import { ActiveStateType } from './model/night-market.model';
 
 /**
  * CORE DATA

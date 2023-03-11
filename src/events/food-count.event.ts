@@ -1,7 +1,4 @@
 import {
-    // CacheType,
-    // ChatInputCommandInteraction,
-    // SlashCommandBuilder,
     ActionRowBuilder,
     Message,
     ButtonBuilder,
@@ -11,23 +8,16 @@ import {
     Interaction,
     TextChannel
 } from 'discord.js';
-import {
-    // appendFoodCount,
-    getOrgNameList
-} from '../service/nm-org.service';
-import {
-    appendFoodCount,
-    deleteLastFoodCount,
-    ParseContentService
-} from '../service/index';
+import { getOrgNameList } from '../service/nm-org.service';
+import { appendFoodCount, ParseContentService } from '../service/index';
 import FuzzySearch from 'fuzzy-search'; // Or: var FuzzySearch = require('fuzzy-search');
-import { DayNameType } from '../model/nm.model';
+import { DayNameType } from '../model/night-market.model';
 import { v4 as uuidv4 } from 'uuid';
+
 // here we keep the initial call, and the response identifiers
 // so we can delete them later if needed.
 const ResponseCache: {
         [k in string]: {
-            range: string;
             messageInputId: string;
             messageResponseId: string;
             messageCountId: string;
@@ -35,7 +25,7 @@ const ResponseCache: {
         };
     } = {},
     // we reset the ResponseCache after a set expiry
-    RESPONSE_CACHE_EXPIRY = 60 * 60 * 24 * 7, // one week in seconds
+    TIME_UNTIL_UPDATE = 60 * 1000, // one minute in milliseconds
     COUNT_CHANNEL_NAME = 'food-count',
     // this maps the night cap channel name to the day, so we can get a date from the channel name
     NIGHT_CHANNEL_NAMES_MAP: {
@@ -226,16 +216,8 @@ Please enter food count like this:
     //         .addOptions(...dateList)
     // );
 
-    const cacheId = uuidv4(); // ⇨ '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'
+    const cacheId = uuidv4();
     ResponseCache[cacheId] = {
-        range: await appendFoodCount({
-            org,
-            date: dateString,
-            // todo: get from core
-            reporter: 'christianco@gmail.com',
-            lbs: lbsCount,
-            note: ''
-        }), // the row in gspread that we inserted,
         messageInputId: message.id,
         messageResponseId: '',
         messageCountId: '',
@@ -270,6 +252,22 @@ Please enter food count like this:
 
     // because we want to delete this message on cancel, or when the expiration passes
     ResponseCache[cacheId].messageResponseId = messageReply.id;
+    setTimeout(
+        async () => {
+            await appendFoodCount({
+                org,
+                date: dateString,
+                // todo: get from core
+                reporter: 'christianco@gmail.com',
+                lbs: lbsCount,
+                note: ''
+            });
+            delete ResponseCache[cacheId];
+            messageReply.delete();
+        },
+        // we give them a certain amount of time to hit cancel
+        TIME_UNTIL_UPDATE
+    );
 
     if (hasNightChannelTrigger) {
         // todo: do we want to post everything in food count?
@@ -296,10 +294,12 @@ export const FoodCountCancelEvent = async (i: Interaction) => {
         m?.fetch(ResponseCache[idCache].messageInputId).then((msg: Message) =>
             msg.delete()
         );
+        if (ResponseCache[idCache].messageResponseId) {
+            m?.fetch(ResponseCache[idCache].messageResponseId).then(
+                (msg: Message) => msg.delete()
+            );
+        }
 
-        m?.fetch(ResponseCache[idCache].messageResponseId).then(
-            (msg: Message) => msg.delete()
-        );
         // delete any posting in the food count that came from the night channels
         if (ResponseCache[idCache].messageCountId) {
             const countChannel = (await interaction.guild?.channels.cache.find(
@@ -310,10 +310,12 @@ export const FoodCountCancelEvent = async (i: Interaction) => {
                 ?.fetch(ResponseCache[idCache].messageCountId)
                 .then((msg: Message) => msg.delete());
         }
-        // todo: delete row from spread
-        // todo: actually, we want to store the range in the spread and delete that
-        // rather than delete the last entry, since the ability to delete persists
-        deleteLastFoodCount();
+
+        // OK, we do not insert, we cache and delete from cache
+        // the insert happens on a timeout and we delete the cancel button then
+
+        delete ResponseCache[idCache];
+        // deleteLastFoodCount();
 
         await interaction.deferUpdate();
     }

@@ -18,6 +18,37 @@ export async function rangeGet(range: string, spreadsheetId: string) {
 
     return result.data.values || [];
 }
+export async function rowsDelete(
+    startIndex: number,
+    endIndex: number,
+    sheetId: number,
+    spreadsheetId: string
+) {
+    const requestBody = {
+        requests: [
+            {
+                deleteDimension: {
+                    range: {
+                        sheetId,
+                        dimension: 'ROWS',
+                        startIndex,
+                        endIndex
+                    }
+                }
+            }
+        ]
+    };
+
+    try {
+        await gspread.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody
+        });
+    } catch (err) {
+        // TODO (Developer) - Handle exception
+        throw err;
+    }
+}
 
 export async function rowsWrite(
     values: string[][],
@@ -30,11 +61,6 @@ export async function rowsWrite(
 
     validate(range, spreadsheetId);
 
-    const service = google.sheets({ version: 'v4', auth });
-
-    const resource = {
-        values
-    };
     try {
         const result = await gspread.spreadsheets.values.update({
             spreadsheetId,
@@ -108,7 +134,7 @@ export async function sheetExists(
 export async function getSheetIdByName(
     title: string,
     spreadsheetId: string
-): Promise<number | void> {
+): Promise<number> {
     try {
         const request = {
             spreadsheetId,

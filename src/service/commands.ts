@@ -8,7 +8,7 @@ import {
 } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DISCORD_TOKEN, DISCORD_CLIENT_ID } from './dotenv';
+import { DISCORD_TOKEN, DISCORD_CLIENT_ID } from '../dotenv';
 
 interface Command {
     data: SlashCommandBuilder;

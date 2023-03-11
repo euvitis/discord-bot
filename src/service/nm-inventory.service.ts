@@ -2,7 +2,9 @@ import {
     sheetCreateIfNone,
     rowsAppend,
     rowsWrite,
-    rangeGet
+    rangeGet,
+    rowsDelete,
+    getSheetIdByName
 } from './gspread.service';
 import {
     GSPREAD_INVENTORY_ID,
@@ -44,7 +46,7 @@ export async function appendFoodCount(
     foodCount: FoodCountMapType,
     // the current year's sheet name by default
     sheet = getFoodCountSheetName()
-) {
+): Promise<[string, number]> {
     // we create a new sheet every year, so we test if the sheet exists, and create it if not
     if (await sheetCreateIfNone(sheet, GSPREAD_INVENTORY_ID)) {
         await rowsAppend(
@@ -53,13 +55,26 @@ export async function appendFoodCount(
             GSPREAD_INVENTORY_ID
         );
     }
+    // rowsAppend returns an array tuple of range string, and index inserted
+    return [
+        await rowsAppend(
+            [fromFoodCountMapToList(foodCount)],
+            sheet,
+            GSPREAD_INVENTORY_ID
+        ),
+        // the length minus 1 is this the zero index of the inserted count
+        (await rangeGet(`'${sheet}'!A1:A`, GSPREAD_INVENTORY_ID)).length - 1
+    ];
+}
 
-    // rowsAppend returns an array of strings that are indices in the spreadsheet
-    return rowsAppend(
-        [fromFoodCountMapToList(foodCount)],
-        sheet,
-        GSPREAD_INVENTORY_ID
-    );
+export async function deleteFoodCountByIndex(
+    startIndex: number,
+    // todo: this is dangerous? we will delete the last row in tue current sheet by default
+    sheetName: string = getFoodCountSheetName()
+) {
+    const sheetId = await getSheetIdByName(sheetName, GSPREAD_INVENTORY_ID);
+
+    await rowsDelete(startIndex, startIndex + 1, sheetId, GSPREAD_INVENTORY_ID);
 }
 
 export async function deleteLastFoodCount(

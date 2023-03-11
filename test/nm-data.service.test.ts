@@ -52,10 +52,13 @@ describe('NightMarketDataService', () => {
             note: 'baby food',
             reporter: 'christianco@gmail.com'
         };
+
         // appends to current year
         const a = await appendFoodCount(foodRecordOne, sheetName);
 
-        const b = await rangeGet(a, GSPREAD_INVENTORY_ID);
+        expect(a[1]).toBeGreaterThan(0);
+
+        const b = await rangeGet(a[0], GSPREAD_INVENTORY_ID);
 
         const foodCountAfter = await getFoodCount(sheetName);
 

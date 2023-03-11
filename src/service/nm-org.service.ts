@@ -1,4 +1,4 @@
-import { ActiveStateType } from '../model/nm.model';
+import { ActiveStateType } from '../model/night-market.model';
 import { GSPREAD_CORE_ACTIVE_STATE_LIST, GSPREAD_CORE_ID } from '../nm-const';
 import { rangeGet } from './gspread.service';
 
