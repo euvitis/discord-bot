@@ -1,35 +1,26 @@
-# Night Market Discord Bot
+# Night Market Discord Bot is "crabapple"
 
-## What does this do?
+## What does crabapple do?
 
-Let's play around and figure out what we want it to do.
+-   Inventory Component
+    -   allows food-count to be input in our night channels and tallied in a Google spreadsheet
 
-## How do I run it?
+## How do I run crabapple?
 
-### Step #1: The Environment
+-   You need node and npm installed and the code downloaded
+-   You need a zip file with credentials for Google and Discord. Get from night-tech team.
+-   from the repo root run:
+    -   `npm install`
+    -   `npm start`
 
-You need npm installed and the code downloaded
-
-### Step #2: Configure it
-
-Create a file called config.json.
-It should look like this:
-
-```
-{
-    "token": "<the secret token>"
-}
-```
-
-### Step #3: Run it!
-
-run `npm start` in the folder with the code
-
-## How does it work?
+## How does crabapple work?
 
 I recomend reading https://discord.js.org/#/docs/discord.js/main/general/welcome to get started.
 
 Okay, this will (mostly) assume that you know how javascript and the discord api works.
 Hopefully even if you don't this will still be interesting and informative.
 
-So... todo.
+## todo
+
+-   draw up schema for onboarding component
+-   come up with other ideas for functionality
