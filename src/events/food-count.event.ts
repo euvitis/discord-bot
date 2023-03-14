@@ -13,10 +13,16 @@ import { appendFoodCount, ParseContentService } from '../service/index';
 import FuzzySearch from 'fuzzy-search'; // Or: var FuzzySearch = require('fuzzy-search');
 import { DayNameType } from '../model/night-market.model';
 import { v4 as uuidv4 } from 'uuid';
+import { PersonService } from '../service/nm-person.service';
+import Debug from 'debug';
 
-// here we keep the initial call, and the response identifiers
-// so we can delete them later if needed.
-const ResponseCache: {
+const debug = Debug('FoodCountEvent');
+
+// this is a cache for food-count input so that we can
+// give user a set period of time to cancel
+// if the user cancels, this cache is deleted
+// if not, it is inserted into the spreadsheet
+const InputCache: {
         [k in string]: {
             messageInputId: string;
             messageResponseId: string;
@@ -24,9 +30,11 @@ const ResponseCache: {
             stamp: number;
         };
     } = {},
-    // we reset the ResponseCache after a set expiry
+    // after a set period of time, the input is inserted. this is that time:
     TIME_UNTIL_UPDATE = 60 * 1000, // one minute in milliseconds
+    // we only allow food count in one channel
     COUNT_CHANNEL_NAME = 'food-count',
+    // OR in a "night channel", which always corresponds to a day
     // this maps the night cap channel name to the day, so we can get a date from the channel name
     NIGHT_CHANNEL_NAMES_MAP: {
         [k in string]: DayNameType;
@@ -41,29 +49,37 @@ const ResponseCache: {
         // ?? i guess saturday will work for weekends for now
         weekends: 'saturday'
     },
+    // within the night channels, you trigger a count by starting with
+    // one of the following words "triggers"
     NIGHT_CHANNEL_TRIGGERS = [
+        COUNT_CHANNEL_NAME,
         'foodcount',
         'nightcount',
         'daycount',
         'countfood'
     ];
 
-// ref: delete a message
-//channel.fetchMessage(lastmsg).then(msg => msg.delete());
-// ref: get a channel
-//  let channel = message.guild.channels.find(
-//     channel => channel.name.toLowerCase() === "information"
-// )
-
-// TODO: we may want to allow any of the night cap "day" channels to receive count so that we automatically know the date
-
+/**
+ *
+ * @param message Discord message event
+ * @returns void
+ */
 export const FoodCountEvent = async (message: Message) => {
     const { channel, author } = message as Message<true>;
-    let { content } = message;
 
-    if (!content.trim()) {
+    // if we are a bot, we do not want to process the message
+    if (author.bot) {
         return;
     }
+
+    let { content } = message;
+    // make sure there is some actual content
+    if (!(content = content.trim())) {
+        return;
+    }
+
+    // does this message originate in the night channel and
+    // does it have the proper "trigger"?
     const hasNightChannelTrigger =
         NIGHT_CHANNEL_NAMES_MAP[channel.name.toLowerCase()] &&
         NIGHT_CHANNEL_TRIGGERS.includes(
@@ -80,33 +96,29 @@ export const FoodCountEvent = async (message: Message) => {
         COUNT_CHANNEL_NAME !== channel.name.toLowerCase() &&
         !hasNightChannelTrigger
     ) {
-        console.log(COUNT_CHANNEL_NAME, 'is not', channel.name.toLowerCase());
+        debug(COUNT_CHANNEL_NAME, 'is not', channel.name.toLowerCase());
         // exit
         return;
     }
 
-    // if we are a bot, we do not want to process the message, but
-    // we might want to store the message id
-    if (author.bot) {
-        return;
-    }
-
     // by default the date is today
-    let dateString = ParseContentService.dateFormat(new Date());
-    // if we are using a night channel, then we have the date:
+    let date = ParseContentService.dateFormat(new Date());
 
+    // if we are using a night channel, then we have the date:
     if (hasNightChannelTrigger) {
         content = content.trim().split(' ').slice(1).join(' ');
-        dateString = ParseContentService.getDateStringFromDay(
+        // This gets the last date for whatever day name the channel uses
+        date = ParseContentService.getDateStringFromDay(
             NIGHT_CHANNEL_NAMES_MAP[channel.name.toLowerCase()]
         );
     }
 
     // get number of lbs and the remaining string
-    const [lbsCount, filterString] =
-        ParseContentService.getLbsAndString(content);
+    const [lbs, filterString] = ParseContentService.getLbsAndString(content);
 
-    if (!lbsCount || !filterString) {
+    // if we do not get a lbs and a filter string (for pick-up  name),
+    // we complain
+    if (!lbs || !filterString) {
         const r = await message.reply({
             content: `We got "${message.content}", which does not compute.
 Please enter food count like this: 
@@ -114,15 +126,20 @@ Please enter food count like this:
         hasNightChannelTrigger ? 'foodcount ' : ''
     }<number of pounds> <pickup name>"
     Example: "8 Village Bakery"`
-            //components: [rowLbs, rowOrg, rowDate]
         });
-        await message.delete();
+        // we only delete their message if they are in food count channel
+        if (!hasNightChannelTrigger) {
+            await message.delete();
+        }
+        // we delete crabapple message after 10 seconds
+        // TODO: not sure if this makes sense
         setTimeout(() => {
             r.delete();
         }, 10000);
         return;
     }
 
+    // we need to search the orgs
     const orgList = await getOrgNameList({
         // we want ALL the orgs, not just active, because
         // this fuzzy search should provide the best options without
@@ -130,6 +147,9 @@ Please enter food count like this:
         active: false
     });
 
+    // TODO: we should have a "nick names" field
+    // so for example FRN is a short name for "food recovery network"
+    // but currently pulls something else
     const searcher = new FuzzySearch(orgList, [], {
         caseSensitive: false,
         sort: true
@@ -145,7 +165,8 @@ Please enter food count like this:
         }));
 
     console.log(filterString, orgDisplayList);
-    // todo: logic for nothing found!
+    // todo: we should standardize these messages at teh top of this
+    // script
     if (!orgDisplayList.length) {
         await message.reply({
             content: `We cannot find a pickup called "${filterString}". 
@@ -157,7 +178,11 @@ Please enter food count like this:
         return;
     }
 
+    // we successfully got a pickup name
     const org = orgDisplayList[0].value;
+
+    // todo: this is reference, because we may want to allow
+    // todo: selection, ie of date entered
 
     // const rowOrg = new ActionRowBuilder().addComponents(
     //     new StringSelectMenuBuilder()
@@ -216,15 +241,19 @@ Please enter food count like this:
     //         .addOptions(...dateList)
     // );
 
+    // now we create our Input cache
+
+    // it gets a unique id
     const cacheId = uuidv4();
-    ResponseCache[cacheId] = {
+    InputCache[cacheId] = {
         messageInputId: message.id,
         messageResponseId: '',
         messageCountId: '',
         stamp: Date.now() / 1000
     };
+    // our success message
     const reply: MessageReplyOptions = {
-        content: `OK, we have ${lbsCount} lbs from ${org} on ${dateString}.`,
+        content: `OK, we have ${lbs} lbs from ${org} on ${date}.`,
         components: [
             new ActionRowBuilder<ButtonBuilder>().addComponents(
                 new ButtonBuilder()
@@ -236,33 +265,27 @@ Please enter food count like this:
         ]
     };
 
-    // if (!hasNightChannelTrigger) {
-    //     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    //         new ButtonBuilder()
-    //             // todo: I guess we can cat the spreadsheet row to the custom id and delete it on cancel
-    //             .setCustomId(`food-count-cancel--${cacheId}`)
-    //             .setLabel('delete')
-    //             .setStyle(ButtonStyle.Danger)
-    //     );
-
-    //     reply.components?.push(row);
-    // }
-
     const messageReply = await message.reply(reply);
 
     // because we want to delete this message on cancel, or when the expiration passes
-    ResponseCache[cacheId].messageResponseId = messageReply.id;
+    // we save the reply id
+    InputCache[cacheId].messageResponseId = messageReply.id;
+
+    // get our reporter email address
+    const reporter = await PersonService.getEmailByDiscordId(author.id);
+    // after a set time, the cancel message disappears and the
+    // input goes to database
     setTimeout(
         async () => {
             await appendFoodCount({
                 org,
-                date: dateString,
+                date,
                 // todo: get from core
-                reporter: 'christianco@gmail.com',
-                lbs: lbsCount,
+                reporter,
+                lbs,
                 note: ''
             });
-            delete ResponseCache[cacheId];
+            delete InputCache[cacheId];
             messageReply.delete();
         },
         // we give them a certain amount of time to hit cancel
@@ -275,12 +298,13 @@ Please enter food count like this:
             (channel) => channel.name === COUNT_CHANNEL_NAME
         )) as TextChannel;
         const countMessage = await countChannel?.send(
-            `We got ${lbsCount} lbs from ${org} on  ${dateString}.`
+            `We got ${lbs} lbs from ${org} on  ${dateString}.`
         );
-        ResponseCache[cacheId].messageCountId = countMessage.id;
+        InputCache[cacheId].messageCountId = countMessage.id;
     }
 };
 
+// Cancel event deletes a cached input
 export const FoodCountCancelEvent = async (i: Interaction) => {
     const interaction = i as ButtonInteraction;
     const { customId } = interaction;
@@ -288,55 +312,34 @@ export const FoodCountCancelEvent = async (i: Interaction) => {
 
     if (idName === 'food-count-cancel') {
         const m = interaction.channel?.messages;
-        if (!ResponseCache[idCache]) {
+        if (!InputCache[idCache]) {
             return;
         }
-        m?.fetch(ResponseCache[idCache].messageInputId).then((msg: Message) =>
+        m?.fetch(InputCache[idCache].messageInputId).then((msg: Message) =>
             msg.delete()
         );
-        if (ResponseCache[idCache].messageResponseId) {
-            m?.fetch(ResponseCache[idCache].messageResponseId).then(
+        if (InputCache[idCache].messageResponseId) {
+            m?.fetch(InputCache[idCache].messageResponseId).then(
                 (msg: Message) => msg.delete()
             );
         }
 
         // delete any posting in the food count that came from the night channels
-        if (ResponseCache[idCache].messageCountId) {
+        if (InputCache[idCache].messageCountId) {
             const countChannel = (await interaction.guild?.channels.cache.find(
                 (channel) => channel.name === COUNT_CHANNEL_NAME
             )) as TextChannel;
 
             countChannel.messages
-                ?.fetch(ResponseCache[idCache].messageCountId)
+                ?.fetch(InputCache[idCache].messageCountId)
                 .then((msg: Message) => msg.delete());
         }
 
         // OK, we do not insert, we cache and delete from cache
         // the insert happens on a timeout and we delete the cancel button then
 
-        delete ResponseCache[idCache];
-        // deleteLastFoodCount();
+        delete InputCache[idCache];
 
         await interaction.deferUpdate();
     }
-
-    // if (interaction.customId === 'count-select-org') {
-    //     CountData[1] = interaction.values[0];
-    // }
-
-    // if (interaction.customId === 'count-select-date') {
-    //     CountData[2] = interaction.values[0];
-    // }
-    // console.log(CountData);
-    // // todo: send to db if interaction is a confirm, reset if it is a cancel
-    // if (CountData.map((a) => !!a).includes(false)) {
-    //     await interaction.reply({
-    //         // todo: tell them what we are missing?
-    //         content: `OK, we are missing something ...`
-    //     });
-    // } else {
-    //     await interaction.reply({
-    //         content: `OK, we have ${lbsCount} lbs from ${CountData[1]} on  ${CountData[2]}, is that correct?`
-    //     });
-    // }
 };

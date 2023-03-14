@@ -5,7 +5,7 @@
 -   Inventory Component
     -   allows food-count to be input in our night channels and tallied in a Google spreadsheet
 
-## How do I run crabapple?
+## How do I run crabapple for local dev?
 
 -   You need node and npm installed and the code downloaded
 -   You need a zip file with credentials for Google and Discord. Get from night-tech team.

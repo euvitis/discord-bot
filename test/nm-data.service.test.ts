@@ -6,7 +6,7 @@ import {
     getFoodCountSheetName
 } from '../src/service/nm-inventory.service';
 import { getOrgNameList } from '../src/service/nm-org.service';
-import { setPersonActiveState } from '../src/service/nm-person.service';
+import { PersonService } from '../src/service/nm-person.service';
 import {
     rangeGet,
     sheetCreateIfNone,
@@ -23,7 +23,10 @@ jest.setTimeout(20000);
 
 describe('NightMarketDataService', () => {
     test('update a person active status in central spreadsheet', async () => {
-        const a = await setPersonActiveState('christianco@gmail.com', 'active');
+        const a = await PersonService.setActiveState(
+            'christianco@gmail.com',
+            'active'
+        );
 
         expect(a).toBe('person!A35');
     });

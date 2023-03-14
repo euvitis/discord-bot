@@ -6,11 +6,11 @@ import {
     rowsAppend,
     rangeGet,
     rowsDelete,
-    getSheetIdByName
+    getSheetIdByName,
+    Alphabet
 } from '../src/service/gspread.service';
 
 import {
-    GSPREAD_CORE_ID,
     GSPREAD_INVENTORY_ID,
     GSPREAD_SHEET_INVENTORY_HEADERS
 } from '../src/nm-const';
@@ -27,6 +27,12 @@ describe('gspread.service.ts', () => {
 
     //     expect(a).toBe(false);
     // });
+
+    test('make sure our alphabet function works', () => {
+        // todo: move this to gspread test
+        expect(Alphabet[0]).toBe('A');
+        expect(Alphabet[25]).toBe('Z');
+    });
 
     test('can we  CREATE and DESTOY and ADD ROWS and DELETE ROWS to a sheet', async () => {
         if (await sheetExists('abc-test', GSPREAD_INVENTORY_ID)) {

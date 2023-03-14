@@ -1,12 +1,33 @@
 import { GoogleAuth } from 'google-auth-library';
 import { google } from 'googleapis';
 
+// the alphabet indexed in array
+export const AlphaIndex = Array.from(Array(26)).map((e, i) => i + 65);
+// the alphabet in an array
+export const Alphabet = AlphaIndex.map((x) =>
+    String.fromCharCode(x).toUpperCase()
+);
+
 const auth = new GoogleAuth({
     keyFile: 'keys.json',
     scopes: 'https://www.googleapis.com/auth/spreadsheets'
 });
 
 const gspread = google.sheets({ version: 'v4', auth });
+
+export function alphabetIndexFromLetter(a: string): number {
+    const n = Alphabet.join().indexOf(a);
+    if (n < 0) {
+        throw new Error('that letter does not exists');
+    }
+    return n;
+}
+export function alphabetLetterFromIndex(a: number): string {
+    if (!Alphabet[a]) {
+        throw new Error('that letter does not exists');
+    }
+    return Alphabet[a];
+}
 
 export async function rangeGet(range: string, spreadsheetId: string) {
     validate(range, spreadsheetId);
