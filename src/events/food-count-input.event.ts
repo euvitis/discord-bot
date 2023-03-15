@@ -4,8 +4,6 @@ import {
     ButtonBuilder,
     MessageReplyOptions,
     ButtonStyle,
-    ButtonInteraction,
-    Interaction,
     TextChannel
 } from 'discord.js';
 import { getOrgNameList } from '../service/nm-org.service';
@@ -13,7 +11,8 @@ import { appendFoodCount, ParseContentService } from '../service/index';
 import FuzzySearch from 'fuzzy-search'; // Or: var FuzzySearch = require('fuzzy-search');
 import { DayNameType } from '../model/night-market.model';
 import { v4 as uuidv4 } from 'uuid';
-import { PersonService } from '../service/nm-person.service';
+import { NmPersonService, CacheService } from '../service/index';
+
 import Debug from 'debug';
 
 const debug = Debug('FoodCountEvent');
@@ -22,14 +21,12 @@ const debug = Debug('FoodCountEvent');
 // give user a set period of time to cancel
 // if the user cancels, this cache is deleted
 // if not, it is inserted into the spreadsheet
-const InputCache: {
-        [k in string]: {
-            messageInputId: string;
-            messageResponseId: string;
-            messageCountId: string;
-            stamp: number;
-        };
-    } = {},
+export const FoodCountInputCache = CacheService<{
+        messageInputId: string;
+        messageResponseId: string;
+        messageCountId: string;
+        stamp: number;
+    }>('food-count'),
     // after a set period of time, the input is inserted. this is that time:
     TIME_UNTIL_UPDATE = 60 * 1000, // one minute in milliseconds
     // we only allow food count in one channel
@@ -119,6 +116,7 @@ export const FoodCountEvent = async (message: Message) => {
     // if we do not get a lbs and a filter string (for pick-up  name),
     // we complain
     if (!lbs || !filterString) {
+        // todo: put these messages into gdrive as templates
         const r = await message.reply({
             content: `We got "${message.content}", which does not compute.
 Please enter food count like this: 
@@ -245,12 +243,12 @@ Please enter food count like this:
 
     // it gets a unique id
     const cacheId = uuidv4();
-    InputCache[cacheId] = {
+    FoodCountInputCache.add(cacheId, {
         messageInputId: message.id,
         messageResponseId: '',
         messageCountId: '',
         stamp: Date.now() / 1000
-    };
+    });
     // our success message
     const reply: MessageReplyOptions = {
         content: `OK, we have ${lbs} lbs from ${org} on ${date}.`,
@@ -269,10 +267,13 @@ Please enter food count like this:
 
     // because we want to delete this message on cancel, or when the expiration passes
     // we save the reply id
-    InputCache[cacheId].messageResponseId = messageReply.id;
 
+    FoodCountInputCache.update(cacheId, {
+        messageResponseId: messageReply.id
+    });
     // get our reporter email address
-    const reporter = await PersonService.getEmailByDiscordId(author.id);
+    const reporter =
+        (await NmPersonService.getEmailByDiscordId(author.id)) || '';
     // after a set time, the cancel message disappears and the
     // input goes to database
     setTimeout(
@@ -280,12 +281,12 @@ Please enter food count like this:
             await appendFoodCount({
                 org,
                 date,
-                // todo: get from core
                 reporter,
                 lbs,
+                // todo: parse the note
                 note: ''
             });
-            delete InputCache[cacheId];
+            FoodCountInputCache.delete(cacheId);
             messageReply.delete();
         },
         // we give them a certain amount of time to hit cancel
@@ -298,48 +299,10 @@ Please enter food count like this:
             (channel) => channel.name === COUNT_CHANNEL_NAME
         )) as TextChannel;
         const countMessage = await countChannel?.send(
-            `We got ${lbs} lbs from ${org} on  ${dateString}.`
+            `We got ${lbs} lbs from ${org} on  ${date}.`
         );
-        InputCache[cacheId].messageCountId = countMessage.id;
-    }
-};
-
-// Cancel event deletes a cached input
-export const FoodCountCancelEvent = async (i: Interaction) => {
-    const interaction = i as ButtonInteraction;
-    const { customId } = interaction;
-    const [idName, idCache] = customId.split('--');
-
-    if (idName === 'food-count-cancel') {
-        const m = interaction.channel?.messages;
-        if (!InputCache[idCache]) {
-            return;
-        }
-        m?.fetch(InputCache[idCache].messageInputId).then((msg: Message) =>
-            msg.delete()
-        );
-        if (InputCache[idCache].messageResponseId) {
-            m?.fetch(InputCache[idCache].messageResponseId).then(
-                (msg: Message) => msg.delete()
-            );
-        }
-
-        // delete any posting in the food count that came from the night channels
-        if (InputCache[idCache].messageCountId) {
-            const countChannel = (await interaction.guild?.channels.cache.find(
-                (channel) => channel.name === COUNT_CHANNEL_NAME
-            )) as TextChannel;
-
-            countChannel.messages
-                ?.fetch(InputCache[idCache].messageCountId)
-                .then((msg: Message) => msg.delete());
-        }
-
-        // OK, we do not insert, we cache and delete from cache
-        // the insert happens on a timeout and we delete the cancel button then
-
-        delete InputCache[idCache];
-
-        await interaction.deferUpdate();
+        FoodCountInputCache.update(cacheId, {
+            messageCountId: countMessage.id
+        });
     }
 };

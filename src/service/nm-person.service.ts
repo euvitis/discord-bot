@@ -20,7 +20,7 @@ const ColumnMap = {
     // the name of the core sheet where all people are
     CORE_PERSON_SHEET = 'person';
 
-export class PersonService {
+export class NmPersonService {
     static async getCleanNameList() {
         return this.getNameList().then((a) => a.filter((b) => b.trim()));
     }
@@ -84,9 +84,7 @@ export class PersonService {
     }
 
     static async getEmailByDiscordId(id: string): Promise<string> {
-        const [status, name, email] = await this.getRowByDiscordIdOrEmail(
-            idOrEmail
-        );
+        const [status, name, email] = await this.getRowByDiscordIdOrEmail(id);
         return email;
     }
 

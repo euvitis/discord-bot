@@ -1,1 +1,1 @@
-export * from './food-count.event';
+export * from './food-count-input.event';
