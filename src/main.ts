@@ -1,4 +1,4 @@
-import { FoodCountEvent, FoodCountCancelEvent } from './events';
+import { FoodCountInputEvent, FoodCountCancelEvent } from './events';
 import { DISCORD_TOKEN } from './dotenv';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 
@@ -19,7 +19,7 @@ async function main() {
     client.once(Events.ClientReady, async (c) => {
         console.log(`Ready! Logged in as ${c.user.tag}`);
     });
-    client.on('messageCreate', FoodCountEvent);
+    client.on('messageCreate', FoodCountInputEvent);
     client.on(Events.InteractionCreate, FoodCountCancelEvent);
 
     // client.on(Events.InteractionCreate, async (interaction) => {

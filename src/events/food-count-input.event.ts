@@ -13,9 +13,8 @@ import { DayNameType } from '../model/night-market.model';
 import { v4 as uuidv4 } from 'uuid';
 import { NmPersonService, CacheService } from '../service/index';
 
-import Debug from 'debug';
-
-const debug = Debug('FoodCountEvent');
+import { Dbg } from '../service';
+const debug = Dbg('FoodCountInputEvent');
 
 // this is a cache for food-count input so that we can
 // give user a set period of time to cancel
@@ -61,7 +60,7 @@ export const FoodCountInputCache = CacheService<{
  * @param message Discord message event
  * @returns void
  */
-export const FoodCountEvent = async (message: Message) => {
+export const FoodCountInputEvent = async (message: Message) => {
     const { channel, author } = message as Message<true>;
 
     // if we are a bot, we do not want to process the message

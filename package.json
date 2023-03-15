@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "npm run build && node build/main.js",
+    "dev": "npm run build && node build/main.js",
     "test": "jest",
     "build": "tsc -p .",
     "watch": "tsc -w -p . & NODE_ENV=dev nodemon",

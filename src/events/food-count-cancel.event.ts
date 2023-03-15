@@ -4,9 +4,8 @@ import {
     COUNT_CHANNEL_NAME
 } from './food-count-input.event';
 
-import Debug from 'debug';
-
-const debug = Debug('FoodCountCancelEvent');
+import { Dbg } from '../service';
+const debug = Dbg('FoodCountCancelEvent');
 
 /**
  *
