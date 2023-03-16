@@ -24,7 +24,9 @@ Then gets the keys.json for google from someone who allready has them (we need a
 
 ### Step #3: Run it!
 
-run `npm start` in the folder with the code
+The first time you run it, use `npm i` in the folder with the code to download the dependencies.
+
+After that, just run `npm start` in the folder with the code to boot crabapple up.
 
 ## How does it work?
 
