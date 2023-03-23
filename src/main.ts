@@ -1,4 +1,4 @@
-import { FoodCountInputEvent, FoodCountCancelEvent } from './events';
+import { FoodCountInputEvent, FoodCountResponseEvent } from './events';
 import { DISCORD_TOKEN } from './dotenv';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 
@@ -19,33 +19,15 @@ async function main() {
     client.once(Events.ClientReady, async (c) => {
         console.log(`Ready! Logged in as ${c.user.tag}`);
     });
-    client.on('messageCreate', FoodCountInputEvent);
-    client.on(Events.InteractionCreate, FoodCountCancelEvent);
+    // todo: this will file on every message sent. we probably
+    // want a big switchboard and fire different stuff depending on
+    // parameters
+    client.on(Events.MessageCreate, FoodCountInputEvent);
 
-    // client.on(Events.InteractionCreate, async (interaction) => {
-    //     if (!interaction.isChatInputCommand()) return;
-
-    //     const command = commands.get(interaction.commandName);
-
-    //     if (!command) {
-    //         console.error(
-    //             `No command matching ${interaction.commandName} was found.`
-    //         );
-    //         return;
-    //     }
-
-    //     try {
-    //         await command.execute(interaction);
-    //     } catch (error) {
-    //         console.error(error);
-    //         await interaction.reply({
-    //             content: 'There was an error while executing this command!',
-    //             ephemeral: true
-    //         });
-    //     }
-    // });
-
-    // Log in to Discord with your client's token
+    // todo: this will file on every interaction sent. we probably
+    // want a big switchboard and fire different stuff depending on
+    // parameters
+    client.on(Events.InteractionCreate, FoodCountResponseEvent);
 
     client.login(DISCORD_TOKEN);
 }

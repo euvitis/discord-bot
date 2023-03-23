@@ -1,21 +1,33 @@
-import { Message, TextChannel, ButtonInteraction } from 'discord.js';
+import {
+    Message,
+    TextChannel,
+    ButtonInteraction,
+    Interaction
+} from 'discord.js';
 import {
     FoodCountInputCache,
     COUNT_CHANNEL_NAME
 } from './food-count-input.event';
 
-import { Dbg } from '../service';
+import { Dbg } from '../service/index';
 const debug = Dbg('FoodCountCancelEvent');
 
 /**
  *
- * @param i Discord interaction event
+ * @param interaction Discord interaction event
  * @returns
  */
-export const FoodCountCancelEvent = async (interaction: ButtonInteraction) => {
+export const FoodCountResponseEvent = async (interaction: Interaction) => {
+    // discord event listener does not like ButtonInteraction, but
+    // it makes like easier below
+    interaction = interaction as ButtonInteraction;
+    // we set the customId of the button
     const { customId } = interaction;
+    // we gave it an action name, and a cache id
     const [idName, idCache] = customId.split('--');
 
+    // here we can use that first action name to do different stuff
+    // depending on what button it is
     if (idName === 'food-count-cancel') {
         const m = interaction.channel?.messages;
         const cache = FoodCountInputCache.get(idCache);

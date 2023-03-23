@@ -1,12 +1,46 @@
 import { DayNameType } from '../model/night-market.model';
+import { getOrgList } from './nm-org.service';
 
-export class ParseContentService {
+interface FoodCountParsedInput {
+    lbs: number;
+    org: string;
+    note: string;
+    filterString: string;
+}
+
+export class NmParseContentService {
     static dateFormat(date: Date) {
         return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     }
+
+    static async getOrgFromFuzzyString(s: string) {
+        const orgList = await getOrgList();
+    }
+    /**
+     *
+     * @param content string content that is multiline
+     * @returns a food count input object
+     */
+    static getFoodCountInputList(content: string): FoodCountParsedInput[] {
+        const inputList = content
+            .split('\n')
+            .map((a) => a.trim())
+            .filter((a) => !!a);
+        let lbs = 0,
+            org = '',
+            note = '',
+            filterString = '';
+        return inputList.map((a) => ({
+            lbs,
+            org,
+            filterString,
+            note
+        }));
+    }
+
     static getLbsAndString(content: string): [number, string] {
         const contentList = content.split(' ').filter((a: string) => a.trim());
-        let lbsCount = ParseContentService.getNumberFromStringStart(
+        let lbsCount = NmParseContentService.getNumberFromStringStart(
             contentList[0]
         );
         // in this case the number was first
@@ -24,7 +58,7 @@ export class ParseContentService {
         }
 
         // in this case the number was last
-        lbsCount = ParseContentService.getNumberFromStringStart(
+        lbsCount = NmParseContentService.getNumberFromStringStart(
             contentList[contentList.length - 1]
         );
         if (lbsCount) {
@@ -34,7 +68,7 @@ export class ParseContentService {
         }
 
         // in this case the number was second to last, and it needs to be followed by a lbs or pounds
-        lbsCount = ParseContentService.getNumberFromStringStart(
+        lbsCount = NmParseContentService.getNumberFromStringStart(
             contentList[contentList.length - 2]
         );
         if (lbsCount) {
@@ -85,7 +119,7 @@ export class ParseContentService {
             d.setDate(d.getDate() - 1);
         }
 
-        return ParseContentService.dateFormat(d);
+        return NmParseContentService.dateFormat(d);
     }
 
     // simply parse for a date that looks like MM/DD or MM/DD/YYYY

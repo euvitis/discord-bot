@@ -2,33 +2,77 @@ import { ActiveStateType } from '../model/night-market.model';
 import { GSPREAD_CORE_ACTIVE_STATE_LIST, GSPREAD_CORE_ID } from '../nm-const';
 import { rangeGet } from './gspread.service';
 
-export async function getOrgNameList(
+interface NmOrgModel {
+    name: string;
+    nameAltList: string[];
+}
+// one hour: every hour the org list gets refreshed
+const ORG_LIST_CACHE_EXPIRY = 1000 * 60 * 60;
+let ORG_LIST_CACHE_TIME = Date.now(),
+    OrgCacheList: NmOrgModel[] = [];
+
+// TODO: make this a class service
+
+export async function getOrgList(
     {
-        active = true
+        active = false,
+        flushCache = true
     }: {
         active?: boolean;
+        flushCache?: boolean;
     } = {
-        active: true
+        active: false,
+        flushCache: true
     }
-): Promise<string[]> {
-    const r = ((await rangeGet('org!A3:B', GSPREAD_CORE_ID)) || []) as [
+): Promise<NmOrgModel[]> {
+    if (
+        // we have a list of orgs AND
+        OrgCacheList.length &&
+        // we are not flushing the cache AND
+        !flushCache &&
+        // the cache is not expired
+        Date.now() - ORG_LIST_CACHE_TIME < ORG_LIST_CACHE_EXPIRY
+    ) {
+        return OrgCacheList;
+    }
+    const r = ((await rangeGet('org!A3:C', GSPREAD_CORE_ID)) || []) as [
+        string,
         string,
         string
     ][];
 
-    return (
-        r
-            .map(([status, name]: [string, string]) => {
-                // if we have requested only active orgs
-                if (active && status !== GSPREAD_CORE_ACTIVE_STATE_LIST[0]) {
-                    return '';
-                }
-                // otherwise return just the name
-                return name.trim();
-            })
-            // remove empties
-            .filter((a) => a)
-    );
+    OrgCacheList = r
+        .filter(([status, name]) => {
+            if (active && status !== GSPREAD_CORE_ACTIVE_STATE_LIST[0]) {
+                return false;
+            }
+            // filter any blank names as well
+            return !!name.trim();
+        })
+        .map(([_, name, nameAltList]) => {
+            // if we have requested only active orgs
+
+            // otherwise return just the name
+            return {
+                name,
+                nameAltList: nameAltList.split(',').filter((a) => a.trim())
+            };
+        });
+
+    return OrgCacheList;
+}
+
+export async function getOrgNameList(
+    opts: {
+        active?: boolean;
+        flushCache?: boolean;
+    } = {
+        active: false,
+        flushCache: true
+    }
+): Promise<string[]> {
+    const r = await getOrgList(opts);
+    return r.map((a) => a.name);
 }
 
 // toggle an org state to active
