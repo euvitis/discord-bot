@@ -1,9 +1,11 @@
 import { DayNameType } from '../model/night-market.model';
 import { getOrgList } from './nm-org.service';
+import FuzzySearch from 'fuzzy-search';
 
 interface FoodCountParsedInput {
     lbs: number;
     org: string;
+    orgFuzzy: string;
     note: string;
     filterString: string;
 }
@@ -13,8 +15,16 @@ export class NmParseContentService {
         return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     }
 
-    static async getOrgFromFuzzyString(s: string) {
+    static async getOrgListFromFuzzyString(
+        orgFuzzy: string
+    ): Promise<string[]> {
         const orgList = await getOrgList();
+        const searcher = new FuzzySearch(orgList, ['name', 'nameAltList'], {
+            caseSensitive: false,
+            sort: true
+        });
+
+        return searcher.search(orgFuzzy).map((a) => a.name);
     }
     /**
      *
@@ -22,18 +32,21 @@ export class NmParseContentService {
      * @returns a food count input object
      */
     static getFoodCountInputList(content: string): FoodCountParsedInput[] {
+        //const orgList = NmParseContentService.getOrgListFromFuzzyString();
         const inputList = content
             .split('\n')
             .map((a) => a.trim())
             .filter((a) => !!a);
         let lbs = 0,
             org = '',
+            orgFuzzy = '',
             note = '',
             filterString = '';
         return inputList.map((a) => ({
             lbs,
             org,
             filterString,
+            orgFuzzy,
             note
         }));
     }

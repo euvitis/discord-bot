@@ -6,13 +6,12 @@ import {
     ButtonStyle,
     TextChannel
 } from 'discord.js';
-import { getOrgNameList } from '../service/nm-org.service';
+import { getOrgList } from '../service/nm-org.service';
 import { appendFoodCount, NmParseContentService } from '../service/index';
 import FuzzySearch from 'fuzzy-search'; // Or: var FuzzySearch = require('fuzzy-search');
 import { DayNameType } from '../model/night-market.model';
 import { v4 as uuidv4 } from 'uuid';
 import { NmPersonService, CacheService } from '../service/index';
-
 import { Dbg } from '../service';
 const debug = Dbg('FoodCountInputEvent');
 
@@ -47,14 +46,43 @@ export const FoodCountInputCache = CacheService<{
         weekends: 'saturday'
     },
     // within the night channels, you trigger a count by starting with
-    // one of the following words "triggers"
+    // one of the following words aka "triggers"
     NIGHT_CHANNEL_TRIGGERS = [
         'thecount',
         'foodcount',
         'nightcount',
+        'nightlycount',
         'daycount',
+        'daylycount',
         'countfood'
     ];
+
+// for ease of editing, we have our error messages and in arrow functions here
+// todo: we should standardize these messages in central database, with maybe template engine
+const contentErrorNoLbsOrOrg = ({
+    messageContent,
+    hasNightChannelTrigger
+}: {
+    messageContent: string;
+    hasNightChannelTrigger: boolean;
+}) => `We got "${messageContent}", which does not compute.
+Please enter food count like this: 
+    "${
+        hasNightChannelTrigger ? 'foodcount ' : ''
+    }<number of pounds> <pickup name>"
+    Example: "8 Village Bakery"`;
+
+const contentErrorNoOrg = ({
+    orgFuzzy,
+    hasNightChannelTrigger
+}: {
+    orgFuzzy: string;
+    hasNightChannelTrigger: boolean;
+}) => `We cannot find a pickup called "${orgFuzzy}". 
+Please try again: "${
+    hasNightChannelTrigger ? 'foodcount ' : ''
+}<number of pounds> <pickup name>"
+Example: "8 Village Bakery"`;
 
 /**
  *
@@ -71,7 +99,8 @@ export const FoodCountInputEvent = async (message: Message) => {
 
     let { content } = message;
     // make sure there is some actual content
-    // this is probably not needed since Discord does it
+    // this is probably not needed since Discord does not send blanks
+    // but it's cheap so leaving it
     if (!(content = content.trim())) {
         return;
     }
@@ -113,81 +142,40 @@ export const FoodCountInputEvent = async (message: Message) => {
         );
     }
 
-    /* OK, prepare to loop over the food count input */
-
-    // we need to search the orgs
-    const orgList = await getOrgNameList({
-        // we want ALL the orgs, not just active, because
-        // this fuzzy search should provide the best options without
-        // making user activate in the central spread
-        active: false
-    });
+    /* OK, loop over the food count input */
 
     const inputList = NmParseContentService.getFoodCountInputList(content);
 
-    for (const { lbs, org, note } of inputList) {
-        // get number of lbs and the remaining string
-
-        // if we do not get a lbs and a filter string (for pick-up  name),
-        // we complain
-        if (!lbs || !org) {
+    for (const { lbs, org, orgFuzzy, note } of inputList) {
+        if (!lbs || !orgFuzzy) {
             // todo: put these messages into gdrive as templates
             const r = await message.reply({
-                content: `We got "${message.content}", which does not compute.
-Please enter food count like this: 
-    "${
-        hasNightChannelTrigger ? 'foodcount ' : ''
-    }<number of pounds> <pickup name>"
-    Example: "8 Village Bakery"`
+                content: contentErrorNoLbsOrOrg({
+                    messageContent: message.content,
+                    hasNightChannelTrigger
+                })
             });
             // we only delete their message if they are in food count channel
             if (!hasNightChannelTrigger) {
                 await message.delete();
             }
             // we delete crabapple message after 10 seconds
-            // TODO: not sure if this makes sense. the idea is that we want to flash an error message then delete it.
+            // the idea is that we want to flash an error message then delete it.
             setTimeout(() => {
                 r.delete();
             }, 10000);
             return;
         }
 
-        // TODO: we should have a "nick names" field
-        // so for example FRN is a short name for "food recovery network"
-        // but currently pulls something else
-        const searcher = new FuzzySearch(orgList, [], {
-            caseSensitive: false,
-            sort: true
-        });
-
-        const orgDisplayList = searcher
-            .search(filterString)
-            .slice(0, 30)
-            .map((a) => ({
-                label: a,
-                description: `This is a ${a}`,
-                value: a
-            }));
-
-        console.log(filterString, orgDisplayList);
-        // todo: we should standardize these messages at teh top of this
-        // script
-        if (!orgDisplayList.length) {
+        if (!org) {
             await message.reply({
-                content: `We cannot find a pickup called "${filterString}". 
-    Please try again: "${
-        hasNightChannelTrigger ? 'foodcount ' : ''
-    }<number of pounds> <pickup name>"
-    Example: "8 Village Bakery"`
+                content: contentErrorNoOrg({
+                    orgFuzzy,
+                    hasNightChannelTrigger
+                })
             });
             return;
         }
-
-        // we successfully got a pickup name
-        const org = orgDisplayList[0].value;
-
-        // todo: this is reference, because we may want to allow
-        // todo: selection, ie of date entered
 
         // now we create our Input cache
 
@@ -257,61 +245,3 @@ Please enter food count like this:
         }
     }
 };
-
-// ref: Discord interactive elements
-// const rowOrg = new ActionRowBuilder().addComponents(
-//     new StringSelectMenuBuilder()
-//         .setCustomId('count-select-org')
-//         .setPlaceholder(
-//             orgDisplayList.length ? '' + CountData[1] : 'No org selected'
-//         )
-//         .addOptions(
-//             ...orgList
-//                 .map((a) => ({
-//                     label: a,
-//                     description: `This is a ${a}`,
-//                     value: a
-//                 }))
-//                 .slice(0, 25)
-//         )
-// );
-
-// // todo: get user entered data, dynamic generate a lbs list
-// const lbsList = [...Array(20 + 1).keys(), 25, 30, 35, 40, 45]
-//     .slice(1)
-//     .map((a) => ({
-//         label: a + 'lbs',
-//         description: `${a} in pounds (lbs)`,
-//         value: '' + a
-//     }));
-// const rowLbs = new ActionRowBuilder().addComponents(
-//     new StringSelectMenuBuilder()
-//         .setCustomId('count-select-lbs')
-//         .setPlaceholder(
-//             lbsCount ? '' + lbsCount : 'No lbs selected'
-//         )
-//         .addOptions(...lbsList)
-// );
-
-// // todo: get user entered date, dynamic generate a dates list of maybe two weeks past, relative to today
-// const d = Date.now();
-// const dateList = [...Array(14 + 1).keys()]
-//     .map((a) => {
-//         d - a * 24 * 1000;
-//         return NmParseContentService.dateFormat(
-//             new Date(d - a * 24 * 60 * 60 * 1000)
-//         );
-//     })
-//     .map((a) => ({
-//         label: a,
-//         description: `On the date of ${a}`,
-//         value: a
-//     }));
-// const rowDate = new ActionRowBuilder().addComponents(
-//     new StringSelectMenuBuilder()
-//         .setCustomId('count-select-date')
-//         .setPlaceholder(
-//             orgDisplayList.length ? '' + CountData[2] : 'No date selected'
-//         )
-//         .addOptions(...dateList)
-// );
