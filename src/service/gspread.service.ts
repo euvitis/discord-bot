@@ -9,7 +9,7 @@ export const Alphabet = AlphaIndex.map((x) =>
 );
 
 const auth = new GoogleAuth({
-    keyFile: 'keys.json',
+    credentials: 'google-api-keys.json',
     scopes: 'https://www.googleapis.com/auth/spreadsheets'
 });
 
