@@ -200,11 +200,10 @@ export const FoodCountInputEvent = async (message: Message) => {
         // input goes to database
 
         if (channelStatus === 'NIGHT_CHANNEL') {
-            const countChannelName =
-                NmFoodCountService.getFoodCountChannelName().toLowerCase();
             // todo: do we want to post everything in food count?
             const countChannel = (await message.guild?.channels.cache.find(
-                (channel) => channel.name.toLowerCase() === countChannelName
+                (channel) =>
+                    NmFoodCountService.isFoodCountChannelName(channel.name)
             )) as TextChannel;
             const countMessage = await countChannel?.send(
                 `We got ${lbs} lbs (${note}) from ${org} on  ${date}.`

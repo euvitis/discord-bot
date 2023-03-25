@@ -81,10 +81,11 @@ Please try again like this:
 Example: 
     "8 lbs Village Bakery"`;
     }
+
     /* Dealing with content => input */
 
-    static getFoodCountChannelName(): string {
-        return COUNT_CHANNEL_NAME;
+    static isFoodCountChannelName(channelName: string): boolean {
+        return channelName.toLowerCase() === COUNT_CHANNEL_NAME.toLowerCase();
     }
 
     static getChannelStatus(channelName: string): FoodCountChannelStatusType {
