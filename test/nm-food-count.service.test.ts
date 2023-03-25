@@ -1,5 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 import { ParseContentService } from '../src/service';
+import { NmFoodCountService } from '../src/service';
 
 describe('ParseContentService', () => {
     test('getting the right date format', async () => {
@@ -11,7 +12,7 @@ describe('ParseContentService', () => {
     });
 
     test('getting the most recent date from a day name', async () => {
-        const a = ParseContentService.getDateStringFromDay('monday');
+        const a = NmFoodCountService.getDateStringFromDay('monday');
         expect(new Date(a).getDay()).toBe(
             // a known monday
             new Date('February 27, 2023').getDay()
@@ -19,31 +20,31 @@ describe('ParseContentService', () => {
     });
 
     test('getting the number and string from content', async () => {
-        let a = ParseContentService.getLbsAndString('8 lbs Village Bakery');
+        let a = NmFoodCountService.getLbsAndString('8 lbs Village Bakery');
         expect(a[0]).toBe(8);
         expect(a[1]).toBe('Village Bakery');
 
-        a = ParseContentService.getLbsAndString('8 Village Bakery');
+        a = NmFoodCountService.getLbsAndString('8 Village Bakery');
         expect(a[0]).toBe(8);
         expect(a[1]).toBe('Village Bakery');
 
-        a = ParseContentService.getLbsAndString('8lbs Village Bakery');
+        a = NmFoodCountService.getLbsAndString('8lbs Village Bakery');
         expect(a[0]).toBe(8);
         expect(a[1]).toBe('Village Bakery');
 
-        a = ParseContentService.getLbsAndString('Village Bakery  8lbs ');
+        a = NmFoodCountService.getLbsAndString('Village Bakery  8lbs ');
         expect(a[0]).toBe(8);
         expect(a[1]).toBe('Village Bakery');
 
-        a = ParseContentService.getLbsAndString('Village Bakery  8 pounds ');
+        a = NmFoodCountService.getLbsAndString('Village Bakery  8 pounds ');
         expect(a[0]).toBe(8);
         expect(a[1]).toBe('Village Bakery');
 
-        a = ParseContentService.getLbsAndString('Village Bakery');
+        a = NmFoodCountService.getLbsAndString('Village Bakery');
         expect(a[0]).toBe(0);
         expect(a[1]).toBe('Village Bakery');
 
-        a = ParseContentService.getLbsAndString('');
+        a = NmFoodCountService.getLbsAndString('');
         expect(a[0]).toBe(0);
         expect(a[1]).toBe('');
     });

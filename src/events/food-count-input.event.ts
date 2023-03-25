@@ -6,10 +6,7 @@ import {
     ButtonStyle,
     TextChannel
 } from 'discord.js';
-import { getOrgList } from '../service/nm-org.service';
-import { appendFoodCount, NmParseContentService } from '../service/index';
-import FuzzySearch from 'fuzzy-search'; // Or: var FuzzySearch = require('fuzzy-search');
-import { DayNameType } from '../model/night-market.model';
+import { appendFoodCount, NmFoodCountService } from '../service/index';
 import { v4 as uuidv4 } from 'uuid';
 import { NmPersonService, CacheService } from '../service/index';
 import { Dbg } from '../service';
@@ -26,63 +23,7 @@ export const FoodCountInputCache = CacheService<{
         stamp: number;
     }>('food-count'),
     // after a set period of time, the input is inserted. this is that time:
-    TIME_UNTIL_UPDATE = 60 * 1000, // one minute in milliseconds
-    // we only allow food count in one channel
-    COUNT_CHANNEL_NAME = 'food-count',
-    // OR in a "night channel", which always corresponds to a day
-    // this maps the night cap channel name to the day, so we can get a date from the channel name
-    NIGHT_CHANNEL_NAMES_MAP: {
-        [k in string]: DayNameType;
-    } = {
-        // property is the night-channel name, value is the name of a day
-        monday: 'monday',
-        tuesday: 'tuesday',
-        wednesday: 'wednesday',
-        thursday: 'thursday',
-        friday: 'friday',
-        saturday: 'saturday',
-        sunday: 'sunday',
-        // ?? i guess saturday will work for weekends for now
-        weekends: 'saturday'
-    },
-    // within the night channels, you trigger a count by starting with
-    // one of the following words aka "triggers"
-    NIGHT_CHANNEL_TRIGGERS = [
-        'thecount',
-        'foodcount',
-        'nightcount',
-        'nightlycount',
-        'daycount',
-        'daylycount',
-        'countfood'
-    ];
-
-// for ease of editing, we have our error messages and in arrow functions here
-// todo: we should standardize these messages in central database, with maybe template engine
-const contentErrorNoLbsOrOrg = ({
-    messageContent,
-    hasNightChannelTrigger
-}: {
-    messageContent: string;
-    hasNightChannelTrigger: boolean;
-}) => `We got "${messageContent}", which does not compute.
-Please enter food count like this: 
-    "${
-        hasNightChannelTrigger ? 'foodcount ' : ''
-    }<number of pounds> <pickup name>"
-    Example: "8 Village Bakery"`;
-
-const contentErrorNoOrg = ({
-    orgFuzzy,
-    hasNightChannelTrigger
-}: {
-    orgFuzzy: string;
-    hasNightChannelTrigger: boolean;
-}) => `We cannot find a pickup called "${orgFuzzy}". 
-Please try again: "${
-    hasNightChannelTrigger ? 'foodcount ' : ''
-}<number of pounds> <pickup name>"
-Example: "8 Village Bakery"`;
+    TIME_UNTIL_UPDATE = 60 * 1000; // one minute in milliseconds
 
 /**
  *
@@ -92,6 +33,8 @@ Example: "8 Village Bakery"`;
 export const FoodCountInputEvent = async (message: Message) => {
     const { channel, author } = message as Message<true>;
 
+    /* STAGE 1: skip the message entirely in some cases */
+
     // if we are a bot, we do not want to process the message
     if (author.bot) {
         return;
@@ -99,81 +42,89 @@ export const FoodCountInputEvent = async (message: Message) => {
 
     let { content } = message;
     // make sure there is some actual content
-    // this is probably not needed since Discord does not send blanks
-    // but it's cheap so leaving it
+    // this is probably not needed since Discord does not send blanks but it's cheap so leaving it
     if (!(content = content.trim())) {
         return;
     }
 
-    // does this message originate in the night channel and
-    // does it have the proper "trigger"? which means it starts with certain string
+    /* STAGE 2: figure out our input status */
+    const [channelStatus, inputStatus, date, parsedInputList] =
+        NmFoodCountService.getParsedChannelAndContent(channel.name, content);
 
-    const hasNightChannelTrigger = NIGHT_CHANNEL_TRIGGERS.includes(
-        content
-            .trim()
-            .split(' ')[0]
-            ?.replace(/[^a-z]/g, '')
-            .toLowerCase()
-    );
-
-    // if we have a night channel trigger, remove it
-    if (hasNightChannelTrigger) {
-        content = content.trim().split(' ').slice(1).join(' ');
-    }
-
-    // if we are not in the food-count channel
-    // and the night channel trigger is not being used, we exit
-    if (
-        COUNT_CHANNEL_NAME !== channel.name.toLowerCase() &&
-        !hasNightChannelTrigger
-    ) {
-        debug('We are not food counting', channel.name.toLowerCase());
+    // if we are not in a night or count channel
+    // we do not send a message, we simply get out
+    if ('INVALID_CHANNEL' === channelStatus) {
         return;
     }
 
-    // by default the date is today
-    let date = NmParseContentService.dateFormat(new Date());
+    // because when we have an invalid input, and we are in the count channel ...
+    if (inputStatus === 'INVALID' && channelStatus === 'COUNT_CHANNEL') {
+        // we want to tell them that they cannot put invalid content in the count channel
 
-    // if we are using a night channel, then we have the date:
-    if (hasNightChannelTrigger) {
-        // This gets the last date for whatever day name the channel uses
-        date = NmParseContentService.getDateStringFromDay(
-            NIGHT_CHANNEL_NAMES_MAP[channel.name.toLowerCase()]
-        );
+        return;
+    }
+    // because when we have only errors, and we are in the count channel ...
+    if (inputStatus === 'ONLY_ERRORS' && channelStatus === 'COUNT_CHANNEL') {
+        // we want to tell them that they cannot put invalid content in the count channel
+        return;
+    }
+
+    // because when we have an invalid input, and we are in the night channel ...
+    if (inputStatus === 'INVALID' && channelStatus === 'NIGHT_CHANNEL') {
+        // we want to nothing, because this is probably not a count
+        return;
+    }
+
+    // because when we have only errors, and we are in the night channel ...
+    if (inputStatus === 'ONLY_ERRORS' && channelStatus === 'NIGHT_CHANNEL') {
+        // we want to ask them nicely if they meant to do a count
+        return;
+    }
+
+    // because when we have some errors, and we are in the night channel ...
+    if (inputStatus === 'OK_WITH_ERRORS' && channelStatus === 'NIGHT_CHANNEL') {
+        // we want to ask them nicely if they meant to do a count
+        // because we do not assume that we are doing a count in this case ?
+        return;
     }
 
     /* OK, loop over the food count input */
-
-    const inputList = NmParseContentService.getFoodCountInputList(content);
-
-    for (const { lbs, org, orgFuzzy, note } of inputList) {
+    // TODO: we can do two loops, one for successful input, one for unsuccessful
+    for (const { lbs, org, orgFuzzy, note } of parsedInputList) {
         if (!lbs || !orgFuzzy) {
-            // todo: put these messages into gdrive as templates
-            const r = await message.reply({
-                content: contentErrorNoLbsOrOrg({
-                    messageContent: message.content,
-                    hasNightChannelTrigger
-                })
-            });
-            // we only delete their message if they are in food count channel
-            if (!hasNightChannelTrigger) {
-                await message.delete();
+            let content = '';
+            if (!lbs && !orgFuzzy) {
+                content = NmFoodCountService.getMessageErrorNoLbsOrOrg({
+                    messageContent: message.content
+                });
             }
+            if (!lbs) {
+                content = NmFoodCountService.getMessageErrorNoLbs({
+                    org
+                });
+            }
+            if (!org) {
+                content = NmFoodCountService.getMessageErrorNoOrg({
+                    orgFuzzy,
+                    lbs
+                });
+            }
+            const r = await message.reply({
+                content
+            });
+
             // we delete crabapple message after 10 seconds
             // the idea is that we want to flash an error message then delete it.
             setTimeout(() => {
+                // ? we only delete their message if they are in food count channel??
+                if ('COUNT_CHANNEL' === channelStatus) {
+                    message.delete();
+                }
+                // always delete our own message
                 r.delete();
             }, 10000);
-            return;
-        }
 
-        if (!org) {
-            await message.reply({
-                content: contentErrorNoOrg({
-                    orgFuzzy,
-                    hasNightChannelTrigger
-                })
-            });
+            // in this case we are done since we cannot Cache and invalid input
             return;
         }
 
@@ -216,6 +167,8 @@ export const FoodCountInputEvent = async (message: Message) => {
         // input goes to database
         setTimeout(
             async () => {
+                // TODO: we need to make sure teh count has not been cancelled
+
                 await appendFoodCount({
                     org,
                     date,
@@ -231,13 +184,15 @@ export const FoodCountInputEvent = async (message: Message) => {
             TIME_UNTIL_UPDATE
         );
 
-        if (hasNightChannelTrigger) {
+        if (channelStatus === 'NIGHT_CHANNEL') {
+            const countChannelName =
+                NmFoodCountService.getFoodCountChannelName().toLowerCase();
             // todo: do we want to post everything in food count?
             const countChannel = (await message.guild?.channels.cache.find(
-                (channel) => channel.name === COUNT_CHANNEL_NAME
+                (channel) => channel.name.toLowerCase() === countChannelName
             )) as TextChannel;
             const countMessage = await countChannel?.send(
-                `We got ${lbs} lbs from ${org} on  ${date}.`
+                `We got ${lbs} lbs (${note}) from ${org} on  ${date}.`
             );
             FoodCountInputCache.update(cacheId, {
                 messageCountId: countMessage.id

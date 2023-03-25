@@ -8,7 +8,7 @@
     "dev": "npm run watch",
     "test": "jest",
     "build": "tsc -p .",
-    "watch": "tsc -w -p . & NODE_ENV=dev nodemon",
+    "watch": "tsc -w -p . & nodemon",
     "format": "prettier --config .prettierrc 'src/**/*.ts' --write",
     "lint": "eslint . --ext .ts"
   },

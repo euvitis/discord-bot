@@ -1,11 +1,4 @@
-import {
-    sheetCreateIfNone,
-    rowsAppend,
-    rowsWrite,
-    rangeGet,
-    rowsDelete,
-    getSheetIdByName
-} from './gspread.service';
+import { GoogleSpreadsheetsService } from './google-spreadsheets.service';
 import {
     GSPREAD_INVENTORY_ID,
     GSPREAD_SHEET_INVENTORY_HEADERS,
@@ -39,7 +32,12 @@ export function fromFoodCountMapToList({
     return [date, org, lbs, reporter, note];
 }
 export async function getFoodCount(sheetName: string) {
-    return (await rangeGet(`'${sheetName}'!A2:E`, GSPREAD_INVENTORY_ID)) || [];
+    return (
+        (await GoogleSpreadsheetsService.rangeGet(
+            `'${sheetName}'!A2:E`,
+            GSPREAD_INVENTORY_ID
+        )) || []
+    );
 }
 
 export async function appendFoodCount(
@@ -48,8 +46,13 @@ export async function appendFoodCount(
     sheet = getFoodCountSheetName()
 ): Promise<[string, number]> {
     // we create a new sheet every year, so we test if the sheet exists, and create it if not
-    if (await sheetCreateIfNone(sheet, GSPREAD_INVENTORY_ID)) {
-        await rowsAppend(
+    if (
+        await GoogleSpreadsheetsService.sheetCreateIfNone(
+            sheet,
+            GSPREAD_INVENTORY_ID
+        )
+    ) {
+        await GoogleSpreadsheetsService.rowsAppend(
             [GSPREAD_SHEET_INVENTORY_HEADERS],
             sheet,
             GSPREAD_INVENTORY_ID
@@ -57,13 +60,18 @@ export async function appendFoodCount(
     }
     // rowsAppend returns an array tuple of range string, and index inserted
     return [
-        await rowsAppend(
+        await GoogleSpreadsheetsService.rowsAppend(
             [fromFoodCountMapToList(foodCount)],
             sheet,
             GSPREAD_INVENTORY_ID
         ),
         // the length minus 1 is this the zero index of the inserted count
-        (await rangeGet(`'${sheet}'!A1:A`, GSPREAD_INVENTORY_ID)).length - 1
+        (
+            await GoogleSpreadsheetsService.rangeGet(
+                `'${sheet}'!A1:A`,
+                GSPREAD_INVENTORY_ID
+            )
+        ).length - 1
     ];
 }
 
@@ -72,9 +80,17 @@ export async function deleteFoodCountByIndex(
     // todo: this is dangerous? we will delete the last row in tue current sheet by default
     sheetName: string = getFoodCountSheetName()
 ) {
-    const sheetId = await getSheetIdByName(sheetName, GSPREAD_INVENTORY_ID);
+    const sheetId = await GoogleSpreadsheetsService.getSheetIdByName(
+        sheetName,
+        GSPREAD_INVENTORY_ID
+    );
 
-    await rowsDelete(startIndex, startIndex + 1, sheetId, GSPREAD_INVENTORY_ID);
+    await GoogleSpreadsheetsService.rowsDelete(
+        startIndex,
+        startIndex + 1,
+        sheetId,
+        GSPREAD_INVENTORY_ID
+    );
 }
 
 export async function deleteLastFoodCount(
@@ -82,13 +98,16 @@ export async function deleteLastFoodCount(
     sheetName: string = getFoodCountSheetName()
 ) {
     const range =
-        (await rangeGet(`'${sheetName}'!A:E`, GSPREAD_INVENTORY_ID)) || [];
+        (await GoogleSpreadsheetsService.rangeGet(
+            `'${sheetName}'!A:E`,
+            GSPREAD_INVENTORY_ID
+        )) || [];
     const lastRowIndex = range.length;
     if (lastRowIndex < 2) {
         console.log('We cannot delete the header');
         return;
     }
-    await rowsWrite(
+    await GoogleSpreadsheetsService.rowsWrite(
         [['', '', '', '', '']],
         `'${sheetName}'!A${lastRowIndex}:E${lastRowIndex}`,
         GSPREAD_INVENTORY_ID

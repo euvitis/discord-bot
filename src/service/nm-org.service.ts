@@ -1,6 +1,6 @@
 import { ActiveStateType } from '../model/night-market.model';
 import { GSPREAD_CORE_ACTIVE_STATE_LIST, GSPREAD_CORE_ID } from '../nm-const';
-import { rangeGet } from './gspread.service';
+import { GoogleSpreadsheetsService } from './google-spreadsheets.service';
 
 interface NmOrgModel {
     name: string;
@@ -35,11 +35,10 @@ export async function getOrgList(
     ) {
         return OrgCacheList;
     }
-    const r = ((await rangeGet('org!A3:C', GSPREAD_CORE_ID)) || []) as [
-        string,
-        string,
-        string
-    ][];
+    const r = ((await GoogleSpreadsheetsService.rangeGet(
+        'org!A3:C',
+        GSPREAD_CORE_ID
+    )) || []) as [string, string, string][];
 
     OrgCacheList = r
         .filter(([status, name]) => {

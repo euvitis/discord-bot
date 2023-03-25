@@ -1,10 +1,7 @@
 import { ActiveStateType, PersonModel } from '../model/night-market.model';
 import { GSPREAD_CORE_ACTIVE_STATE_LIST, GSPREAD_CORE_ID } from '../nm-const';
-import { rangeGet, rowsWrite } from './gspread.service';
-import {
-    alphabetIndexFromLetter,
-    alphabetLetterFromIndex
-} from './gspread.service';
+import { GoogleSpreadsheetsService } from './google-spreadsheets.service';
+
 type ColumnMapKeyType = keyof typeof ColumnMap;
 
 // makes it easier to find and change where data is in sheet columns
@@ -30,20 +27,23 @@ export class NmPersonService {
     }
 
     static async getNameList(): Promise<string[]> {
-        return rangeGet(
+        return GoogleSpreadsheetsService.rangeGet(
             this.getColumnDataRangeName('NAME'),
             GSPREAD_CORE_ID
         ).then((a) => a[0]);
     }
 
     static async getEmailList(): Promise<string[]> {
-        return rangeGet(
+        return GoogleSpreadsheetsService.rangeGet(
             this.getColumnDataRangeName('EMAIL'),
             GSPREAD_CORE_ID
         ).then((a) => a[0]);
     }
     static async getAllData(): Promise<string[][]> {
-        return rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID);
+        return GoogleSpreadsheetsService.rangeGet(
+            this.getFullPersonDataRangeName(),
+            GSPREAD_CORE_ID
+        );
     }
 
     static async getPersonByDiscorIdOrEmail(
@@ -94,7 +94,7 @@ export class NmPersonService {
         idOrEmail = idOrEmail.toLowerCase().trim();
         const emailIndex = this.getColumnIndexByName('EMAIL');
         const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
-        const a = await rangeGet(
+        const a = await GoogleSpreadsheetsService.rangeGet(
             this.getFullPersonDataRangeName(),
             GSPREAD_CORE_ID
         )
@@ -114,7 +114,7 @@ export class NmPersonService {
         idOrEmail = idOrEmail.toLowerCase().trim();
         const emailIndex = this.getColumnIndexByName('EMAIL');
         const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
-        return rangeGet(
+        return GoogleSpreadsheetsService.rangeGet(
             this.getFullPersonDataRangeName(),
             GSPREAD_CORE_ID
         ).then((a) =>
@@ -148,13 +148,19 @@ export class NmPersonService {
         const range = this.getColumnRangeName('STATUS', rowIndex + 1);
 
         // update cell for active at row and column index (add method to GSpreadService)
-        await rowsWrite([[activeState]], range, GSPREAD_CORE_ID);
+        await GoogleSpreadsheetsService.rowsWrite(
+            [[activeState]],
+            range,
+            GSPREAD_CORE_ID
+        );
         return range;
     }
 
     // gets the row index number from named column
     static getColumnIndexByName(columnName: ColumnMapKeyType) {
-        return alphabetIndexFromLetter(ColumnMap[columnName]);
+        return GoogleSpreadsheetsService.alphabetIndexFromLetter(
+            ColumnMap[columnName]
+        );
     }
 
     // returns the full range for all the data minus the header
