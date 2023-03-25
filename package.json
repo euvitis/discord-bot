@@ -4,8 +4,8 @@
   "description": "A discord bot for davis night market",
   "main": "main.js",
   "scripts": {
-    "start": "npm run build && node build/main.js",
-    "dev": "npm run build && node build/main.js",
+    "start": "NODE_ENV=prod node build/main.js",
+    "dev": "npm run watch",
     "test": "jest",
     "build": "tsc -p .",
     "watch": "tsc -w -p . & NODE_ENV=dev nodemon",

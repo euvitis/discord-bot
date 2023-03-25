@@ -1,6 +1,6 @@
 # Config.json includes secrets, so don't upload it.
-discord-config.json
-google-api-keys.json
+config-discord-api.keys.json
+config-google-api.keys.json
 config.json
 keys.json
 .env
