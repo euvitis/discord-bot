@@ -160,7 +160,7 @@ Example:
         ];
     }
 
-    private static getDateFromNightChannelName(channelName: string): string {
+    static getDateFromNightChannelName(channelName: string): string {
         return NmFoodCountService.getDateStringFromDay(
             NIGHT_CHANNEL_NAMES_MAP[channelName.toLowerCase()]
         );
@@ -182,7 +182,7 @@ Example:
      * @param content string content that is multiline
      * @returns a date and a food count input list
      */
-    private static getFoodCountDateAndParsedInput(
+    static getFoodCountDateAndParsedInput(
         content: string
     ): [string, FoodCountParsedInputModel[], FoodCountParsedInputModel[]] {
         //const orgList = NmFoodCountService.getOrgListFromFuzzyString();
@@ -213,7 +213,7 @@ Example:
         ];
     }
 
-    private static getLbsAndString(content: string): [number, string] {
+    static getLbsAndString(content: string): [number, string] {
         const contentList = content.split(' ').filter((a: string) => a.trim());
         let lbsCount = NmFoodCountService.getNumberFromStringStart(
             contentList[0]
@@ -261,7 +261,7 @@ Example:
         // in this case there was no number, so we return a falsy zero and let them pick one
         return [lbsCount || 0, contentList.join(' ')];
     }
-    private static getNumberFromStringStart(s: string = ''): number {
+    static getNumberFromStringStart(s: string = ''): number {
         let c = 0;
         for (let a = 0; a < s.length; a++) {
             // if the first char is not a number, return zero
@@ -277,7 +277,7 @@ Example:
         return c;
     }
 
-    private static getDateStringFromDay(day: DayNameType): string {
+    static getDateStringFromDay(day: DayNameType): string {
         var days = [
             'sunday',
             'monday',

@@ -8,12 +8,7 @@ import {
 import { getOrgNameList } from '../src/service/nm-org.service';
 import { NmPersonService } from '../src/service';
 
-import {
-    rangeGet,
-    sheetCreateIfNone,
-    rowsAppend,
-    sheetDestroy
-} from '../src/service/gspread.service';
+import { GoogleSpreadsheetsService } from '../src/service/google-spreadsheets.service';
 
 import {
     GSPREAD_INVENTORY_ID,
@@ -41,8 +36,11 @@ describe('NightMarketDataService', () => {
         const sheetName = getFoodCountSheetName(1877);
         expect(sheetName).toBe('food-count 1877');
 
-        await sheetCreateIfNone(sheetName, GSPREAD_INVENTORY_ID);
-        await rowsAppend(
+        await GoogleSpreadsheetsService.sheetCreateIfNone(
+            sheetName,
+            GSPREAD_INVENTORY_ID
+        );
+        await GoogleSpreadsheetsService.rowsAppend(
             [GSPREAD_SHEET_INVENTORY_HEADERS],
             sheetName,
             GSPREAD_INVENTORY_ID
@@ -62,7 +60,10 @@ describe('NightMarketDataService', () => {
 
         expect(a[1]).toBeGreaterThan(0);
 
-        const b = await rangeGet(a[0], GSPREAD_INVENTORY_ID);
+        const b = await GoogleSpreadsheetsService.rangeGet(
+            a[0],
+            GSPREAD_INVENTORY_ID
+        );
 
         const foodCountAfter = await getFoodCount(sheetName);
 
@@ -118,6 +119,9 @@ describe('NightMarketDataService', () => {
         expect(foodCountFinal[foodCountFinal.length - 1][4]).toBe(
             foodRecordOne.note
         );
-        await sheetDestroy(sheetName, GSPREAD_INVENTORY_ID);
+        await GoogleSpreadsheetsService.sheetDestroy(
+            sheetName,
+            GSPREAD_INVENTORY_ID
+        );
     });
 });
