@@ -12,15 +12,20 @@ import { NmPersonService, CacheService } from '../service/index';
 import { Dbg } from '../service';
 const debug = Dbg('FoodCountInputEvent');
 
+// status for each cached input: does it get inserted unless cancel? or does it require a confirmation?
+type CacheStatusType = 'INSERT_UNLESS_CANCEL' | 'DELETE_UNLESS_CONFIRM';
+
 // this is a cache for food-count input so that we can
 // give user a set period of time to cancel
 // if the user cancels, this cache is deleted
 // if not, it is inserted into the spreadsheet
 export const FoodCountInputCache = CacheService<{
+        status: CacheStatusType;
         messageInputId: string;
         messageResponseId: string;
         messageCountId: string;
         stamp: number;
+        insertTimeout: null | NodeJS.Timeout;
     }>('food-count'),
     // after a set period of time, the input is inserted. this is that time:
     TIME_UNTIL_UPDATE = 60 * 1000; // one minute in milliseconds
@@ -63,21 +68,16 @@ export const FoodCountInputEvent = async (message: Message) => {
 
         return;
     }
-    // because when we have only errors, and we are in the count channel ...
-    if (inputStatus === 'ONLY_ERRORS' && channelStatus === 'COUNT_CHANNEL') {
-        // we want to tell them that they cannot put invalid content in the count channel
-        return;
-    }
 
     // because when we have an invalid input, and we are in the night channel ...
     if (inputStatus === 'INVALID' && channelStatus === 'NIGHT_CHANNEL') {
         // we want to nothing, because this is probably not a count
         return;
     }
-
     // because when we have only errors, and we are in the night channel ...
     if (inputStatus === 'ONLY_ERRORS' && channelStatus === 'NIGHT_CHANNEL') {
-        // we want to ask them nicely if they meant to do a count
+        // we want to ask them nicely if they meant to do a count at all
+        // ? perhaps we want a a separate cache for this case and let them confirm?
         return;
     }
 
@@ -85,11 +85,19 @@ export const FoodCountInputEvent = async (message: Message) => {
     if (inputStatus === 'OK_WITH_ERRORS' && channelStatus === 'NIGHT_CHANNEL') {
         // we want to ask them nicely if they meant to do a count
         // because we do not assume that we are doing a count in this case ?
+        // ? perhaps we want a a separate cache for this case and let them confirm?
+        // ? we might also want to check what kind of errors? because if they do not have lbs, maybe we assume they did not mean to count
+        return;
+    }
+
+    // because when we have only errors, and we are in the count channel ...
+    if (inputStatus === 'ONLY_ERRORS' && channelStatus === 'COUNT_CHANNEL') {
+        // we want to show them their errors, ask if they meant to do it
         return;
     }
 
     /* OK, loop over the food count input */
-    // TODO: we can do two loops, one for successful input, one for unsuccessful
+    // ? we can do two loops, one for successful input, one for unsuccessful
     for (const { lbs, org, orgFuzzy, note } of parsedInputList) {
         if (!lbs || !orgFuzzy) {
             let content = '';
@@ -128,44 +136,11 @@ export const FoodCountInputEvent = async (message: Message) => {
             return;
         }
 
-        // now we create our Input cache
-
-        // it gets a unique id
+        // we need a unique id for our cache
         const cacheId = uuidv4();
-        FoodCountInputCache.add(cacheId, {
-            messageInputId: message.id,
-            messageResponseId: '',
-            messageCountId: '',
-            stamp: Date.now() / 1000
-        });
-        // our success message
-        const reply: MessageReplyOptions = {
-            content: `OK, we have ${lbs} lbs from ${org} on ${date}.`,
-            components: [
-                new ActionRowBuilder<ButtonBuilder>().addComponents(
-                    new ButtonBuilder()
-                        // todo: I guess we can cat the spreadsheet row to the custom id and delete it on cancel
-                        .setCustomId(`food-count-cancel--${cacheId}`)
-                        .setLabel('delete')
-                        .setStyle(ButtonStyle.Danger)
-                )
-            ]
-        };
 
-        const messageReply = await message.reply(reply);
-
-        // because we want to delete this message on cancel, or when the expiration passes
-        // we save the reply id
-
-        FoodCountInputCache.update(cacheId, {
-            messageResponseId: messageReply.id
-        });
-        // get our reporter email address
-        const reporter =
-            (await NmPersonService.getEmailByDiscordId(author.id)) || '';
-        // after a set time, the cancel message disappears and the
-        // input goes to database
-        setTimeout(
+        // now we create our insert event
+        const insertTimeout = setTimeout(
             async () => {
                 // TODO: we need to make sure teh count has not been cancelled
 
@@ -183,6 +158,46 @@ export const FoodCountInputEvent = async (message: Message) => {
             // we give them a certain amount of time to hit cancel
             TIME_UNTIL_UPDATE
         );
+
+        // create our cache
+        FoodCountInputCache.add(cacheId, {
+            status: 'INSERT_UNLESS_CANCEL',
+            messageInputId: message.id,
+            messageResponseId: '',
+            messageCountId: '',
+            stamp: Date.now() / 1000,
+            insertTimeout
+        });
+
+        // our success message
+        const reply: MessageReplyOptions = {
+            content: `OK, we have ${lbs} lbs from ${org} on ${date}.`,
+            components: [
+                new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    new ButtonBuilder()
+                        // todo: I guess we can cat the spreadsheet row to the custom id and delete it on cancel
+                        .setCustomId(`food-count-cancel--${cacheId}`)
+                        .setLabel('delete')
+                        .setStyle(ButtonStyle.Danger)
+                )
+            ]
+        };
+
+        // get the message reply
+        const messageReply = await message.reply(reply);
+
+        // because we want to delete this message on cancel, or when the expiration passes
+        // we save the reply id
+
+        FoodCountInputCache.update(cacheId, {
+            messageResponseId: messageReply.id
+        });
+
+        // get our reporter email address
+        const reporter =
+            (await NmPersonService.getEmailByDiscordId(author.id)) || '';
+        // after a set time, the cancel message disappears and the
+        // input goes to database
 
         if (channelStatus === 'NIGHT_CHANNEL') {
             const countChannelName =

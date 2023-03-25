@@ -3,7 +3,7 @@ import { getOrgList } from './nm-org.service';
 import FuzzySearch from 'fuzzy-search';
 import { ParseContentService } from './parse-content.service';
 
-interface FoodCountParsedInputModel {
+export interface FoodCountParsedInputModel {
     lbs: number;
     org: string;
     orgFuzzy: string;
