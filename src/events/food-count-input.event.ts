@@ -53,8 +53,15 @@ export const FoodCountInputEvent = async (message: Message) => {
     }
 
     /* STAGE 2: figure out our input status */
-    const [channelStatus, inputStatus, date, parsedInputList] =
-        NmFoodCountService.getParsedChannelAndContent(channel.name, content);
+    const [
+        channelStatus,
+        inputStatus,
+        // did we get the date from the content, from the channel name, or just today by default?
+        dateStatus,
+        date,
+        parsedInputList,
+        parsedInputErrorList
+    ] = NmFoodCountService.getParsedChannelAndContent(channel.name, content);
 
     // if we are not in a night or count channel
     // we do not send a message, we simply get out
@@ -98,44 +105,7 @@ export const FoodCountInputEvent = async (message: Message) => {
 
     /* OK, loop over the food count input */
     // ? we can do two loops, one for successful input, one for unsuccessful
-    for (const { lbs, org, orgFuzzy, note } of parsedInputList) {
-        if (!lbs || !orgFuzzy) {
-            let content = '';
-            if (!lbs && !orgFuzzy) {
-                content = NmFoodCountService.getMessageErrorNoLbsOrOrg({
-                    messageContent: message.content
-                });
-            }
-            if (!lbs) {
-                content = NmFoodCountService.getMessageErrorNoLbs({
-                    org
-                });
-            }
-            if (!org) {
-                content = NmFoodCountService.getMessageErrorNoOrg({
-                    orgFuzzy,
-                    lbs
-                });
-            }
-            const r = await message.reply({
-                content
-            });
-
-            // we delete crabapple message after 10 seconds
-            // the idea is that we want to flash an error message then delete it.
-            setTimeout(() => {
-                // ? we only delete their message if they are in food count channel??
-                if ('COUNT_CHANNEL' === channelStatus) {
-                    message.delete();
-                }
-                // always delete our own message
-                r.delete();
-            }, 10000);
-
-            // in this case we are done since we cannot Cache and invalid input
-            return;
-        }
-
+    for (const { lbs, org, note } of parsedInputList) {
         // we need a unique id for our cache
         const cacheId = uuidv4();
 
@@ -212,5 +182,43 @@ export const FoodCountInputEvent = async (message: Message) => {
                 messageCountId: countMessage.id
             });
         }
+    }
+
+    // loop over errors and post to channel
+    for (const { status, lbs, org, orgFuzzy } of parsedInputErrorList) {
+        let content = '';
+        if (status === 'NO_LBS_OR_ORG') {
+            content = NmFoodCountService.getMessageErrorNoLbsOrOrg({
+                messageContent: message.content
+            });
+        }
+        if (status === 'NO_LBS') {
+            content = NmFoodCountService.getMessageErrorNoLbs({
+                org
+            });
+        }
+        if (status === 'NO_ORG') {
+            content = NmFoodCountService.getMessageErrorNoOrg({
+                orgFuzzy,
+                lbs
+            });
+        }
+        const r = await message.reply({
+            content
+        });
+
+        // we delete crabapple message after 10 seconds
+        // the idea is that we want to flash an error message then delete it.
+        setTimeout(() => {
+            // ? we only delete their message if they are in food count channel??
+            if ('COUNT_CHANNEL' === channelStatus) {
+                message.delete();
+            }
+            // always delete our own message
+            r.delete();
+        }, 10000);
+
+        // in this case we are done since we cannot Cache and invalid input
+        return;
     }
 };

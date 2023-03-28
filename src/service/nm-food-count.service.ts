@@ -3,18 +3,12 @@ import { getOrgList } from './nm-org.service';
 import FuzzySearch from 'fuzzy-search';
 import { ParseContentService } from './parse-content.service';
 
-export interface FoodCountParsedInputModel {
-    lbs: number;
-    org: string;
-    orgFuzzy: string;
-    note: string;
-    filterString: string;
-}
-
+// what type of channel are we in?
 type FoodCountChannelStatusType =
     | 'COUNT_CHANNEL'
     | 'NIGHT_CHANNEL'
     | 'INVALID_CHANNEL';
+
 // each input request is evaluated and given a status
 type FoodCountInputStatusType =
     // when we have a count input with no errors
@@ -25,6 +19,41 @@ type FoodCountInputStatusType =
     | 'ONLY_ERRORS'
     // when we have an invalid count we can parse no usable data
     | 'INVALID';
+
+// each input request gets a date
+type FoodCountInputDateStatusType =
+    // when the date is in the content
+    | 'DATE_PARSED'
+    // when the date is derived from the channel
+    | 'DATE_CHANNEL'
+    // when the date is the default, today
+    | 'DATE_TODAY';
+
+// each line of input is a separate data entry, we give each one a status
+type FoodCountInputDataStatusType =
+    // when we have a count input with no errors
+    | 'OK'
+    // when we have a count input but there are one or more errors (multiline)
+    | 'NO_LBS'
+    // when we may have a count input, but are not sure because we did not get any valid input
+    | 'NO_ORG'
+    // when we have an invalid count we can parse no usable data
+    | 'NO_LBS_OR_ORG';
+
+export interface FoodCountParsedInputModel {
+    status: FoodCountInputDataStatusType;
+    lbs: number;
+    org: string;
+    orgFuzzy: string;
+    note: string;
+    filterString: string;
+}
+interface FoodCountParsedInputSuccessModel extends FoodCountParsedInputModel {
+    status: 'OK';
+}
+interface FoodCountParsedInputFailModel extends FoodCountParsedInputModel {
+    status: Exclude<FoodCountInputDataStatusType, 'OK'>;
+}
 
 // we only allow food count in one channel
 const COUNT_CHANNEL_NAME = 'food-count',
@@ -109,31 +138,38 @@ Example:
     ): [
         FoodCountChannelStatusType,
         FoodCountInputStatusType,
+        FoodCountInputDateStatusType,
         string,
         FoodCountParsedInputModel[],
         FoodCountParsedInputModel[]
     ] {
         const channelStatus = this.getChannelStatus(channelName);
 
-        let inputStatus: FoodCountInputStatusType = 'INVALID';
+        let inputStatus: FoodCountInputStatusType = 'INVALID',
+            dateStatus: FoodCountInputDateStatusType,
+            date = ParseContentService.dateFormat(new Date());
 
         if ('INVALID_CHANNEL' === channelStatus) {
             inputStatus = 'INVALID';
 
             // in this case we don't want to process anything, just return it
-            return [channelStatus, inputStatus, '', [], []];
+            return [channelStatus, inputStatus, 'DATE_TODAY', date, [], []];
         }
 
         const [dateParsed, parsedInputList, parsedInputErrorList] =
             this.getFoodCountDateAndParsedInput(content);
 
-        // the date is either in the content, or it is today
-        let date = dateParsed || ParseContentService.dateFormat(new Date());
+        dateStatus = dateParsed ? 'DATE_PARSED' : 'DATE_TODAY';
 
+        // the date is either in the content, or it is today
+        if (dateStatus === 'DATE_PARSED') {
+            date = dateParsed;
+        }
         // if we are in the night channel and we did not get a date from teh parser
         // then we get a date from the name of the channel
-        if (!dateParsed && channelStatus === 'NIGHT_CHANNEL') {
+        if (dateStatus === 'DATE_TODAY' && channelStatus === 'NIGHT_CHANNEL') {
             date = this.getDateFromNightChannelName(channelName);
+            dateStatus = 'DATE_CHANNEL';
         }
 
         //  if we DID get successful input, and we got NO errors
@@ -154,6 +190,7 @@ Example:
         return [
             channelStatus,
             inputStatus,
+            dateStatus,
             '',
             parsedInputList,
             parsedInputErrorList
@@ -184,7 +221,14 @@ Example:
      */
     static getFoodCountDateAndParsedInput(
         content: string
-    ): [string, FoodCountParsedInputModel[], FoodCountParsedInputModel[]] {
+    ): [
+        string,
+        FoodCountParsedInputSuccessModel[],
+        FoodCountParsedInputFailModel[]
+    ] {
+        let date = this.parseDateFromContent(content);
+
+        // TODO: parse the date and lines
         //const orgList = NmFoodCountService.getOrgListFromFuzzyString();
         const inputList = content
             .split('\n')
@@ -194,22 +238,36 @@ Example:
             org = '',
             orgFuzzy = '',
             note = '',
-            filterString = '';
+            filterString = '',
+            status: FoodCountInputDataStatusType = 'OK';
 
+        if (!lbs && !org) {
+            status = 'NO_LBS_OR_ORG';
+        } else if (!lbs) {
+            status = 'NO_LBS';
+        } else if (!org) {
+            status = 'NO_ORG';
+        }
+
+        const inputDataList = inputList.map((a) => ({
+            status,
+            lbs,
+            org,
+            filterString,
+            orgFuzzy,
+            note
+        }));
         // todo: get the date from content if any
-        let date = '';
         return [
             // todo: get the date
             date,
-            inputList.map((a) => ({
-                lbs,
-                org,
-                filterString,
-                orgFuzzy,
-                note
-            })),
+            inputDataList.filter(
+                (a) => a.status === 'OK'
+            ) as FoodCountParsedInputSuccessModel[],
             // todo: this will be a list of error inputs
-            []
+            inputDataList.filter(
+                (a) => a.status !== 'OK'
+            ) as FoodCountParsedInputFailModel[]
         ];
     }
 
@@ -302,36 +360,53 @@ Example:
     // todo: i think this sucks. there must be an easier way to do this, like just ask them for the date in the confirm?
     // ok, we are going with a different method of parsing date: either we get the day from the channel name, or we
     // ask for a confirmation in the food-count channel.
-    // static getDateFromString(s: string): [string, string] {
-    //     let n = '';
-    //     const d = new Date();
-    //     const t = s.split(' ').filter((a) => a);
-    //     const i = t.findIndex((a) => a.split('/').length > 1);
-    //     if (i >= 0) {
-    //         // there is a date proper in here, let us take it off of t
-    //         const u = t.splice(i, 1).pop() || '';
-    //         const v = u.split('/');
-    //         if (v.length === 2) {
-    //             if (v[0].length === 2 && v[1].length === 2) {
-    //                 // ok good enough
-    //                 n = v.join('/') + '/' + d.getFullYear();
-    //             }
-    //         } else if (v.length === 3) {
-    //             if (
-    //                 v[0].length === 2 &&
-    //                 v[1].length === 2 &&
-    //                 v[2].length === 4
-    //             ) {
-    //                 // ok good enough
-    //                 n = v.join('/');
-    //             }
-    //         }
-    //     }
+    static parseDateFromContent(s: string): string {
+        // we simply want to know if the start of the string looks like mm/dd/yyyy or mm/dd
+        const potentialDate = s
+            .trim()
+            .split('\n')[0]
+            ?.split(' ')[0]
+            ?.split('/');
 
-    //     return [
-    //         n || dateFormat(new Date(), 'mm/dd/yyyyy'),
-    //         // at this point t has had the date string removed
-    //         t.join(' ')
-    //     ];
-    // }
+        // in this case we don't have anything that looks like our date
+
+        // if it is too short or long
+        if (potentialDate.length < 2 || potentialDate.length > 3) {
+            return '';
+        }
+
+        // if any of the strings is not a number
+        for (const i of potentialDate) {
+            if (isNaN(+i)) {
+                return '';
+            }
+        }
+
+        // it is not a month
+        if (+potentialDate[0] > 12 || +potentialDate[0] < 1) {
+            return '';
+        }
+
+        // it is not a day of the month
+        if (+potentialDate[1] > 31 || +potentialDate[1] < 1) {
+            return '';
+        }
+
+        // it is not a year
+        if (+potentialDate[2] && potentialDate[2].length > 5) {
+            return '';
+        }
+
+        const theYear = new Date().getFullYear();
+
+        // it is not a full year, make it full
+        if (potentialDate[2].length == 2) {
+            potentialDate[2] = ('' + theYear).slice(0, 2) + potentialDate[2];
+        }
+
+        return (
+            potentialDate.join('/') +
+            (potentialDate.length === 2 ? '' : '/' + theYear)
+        );
+    }
 }
