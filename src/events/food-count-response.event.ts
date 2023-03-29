@@ -2,9 +2,7 @@ import {
     Message,
     TextChannel,
     ButtonInteraction,
-    Interaction,
-    MessageManager,
-    TextBasedChannel
+    Interaction
 } from 'discord.js';
 import { FoodCountInputCache } from './food-count-input.event';
 

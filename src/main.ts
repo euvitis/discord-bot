@@ -1,7 +1,6 @@
 import { FoodCountInputEvent, FoodCountResponseEvent } from './events';
-import { DISCORD_TOKEN } from './dotenv';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
-
+import { NmConfigService } from './service';
 async function main() {
     const client = new Client({
         intents: [
@@ -29,7 +28,10 @@ async function main() {
     // parameters
     client.on(Events.InteractionCreate, FoodCountResponseEvent);
 
-    client.login(DISCORD_TOKEN);
+    const {
+        discordConfig: { appToken }
+    } = await NmConfigService.getParsed();
+    client.login(appToken);
 }
 
 main();
