@@ -28,7 +28,7 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
     // here we can use that first action name to do different stuff
     // depending on what button it is
     if (idName === 'food-count-cancel') {
-        const m = (interaction.channel as TextBasedChannel)?.messages;
+        const m = (interaction.channel as TextChannel)?.messages;
         const cache = FoodCountInputCache.get(idCache);
 
         if (!cache) {
