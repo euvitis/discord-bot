@@ -2,7 +2,8 @@ import {
     Message,
     TextChannel,
     ButtonInteraction,
-    Interaction
+    Interaction,
+    MessageManager
 } from 'discord.js';
 import { FoodCountInputCache } from './food-count-input.event';
 
@@ -26,7 +27,8 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
     // here we can use that first action name to do different stuff
     // depending on what button it is
     if (idName === 'food-count-cancel') {
-        const m = interaction.channel?.messages;
+        const m = interaction.channel
+            ?.messages as unknown as MessageManager<true>;
         const cache = FoodCountInputCache.get(idCache);
 
         if (!cache) {
