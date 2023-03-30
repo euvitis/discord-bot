@@ -2,7 +2,31 @@ import { describe, expect, test } from '@jest/globals';
 import { ParseContentService } from '../src/service';
 import { NmFoodCountService } from '../src/service';
 
-describe('ParseContentService', () => {
+describe('NmFoodCountService', () => {
+    test('getting a list of parsed data from a content', async () => {
+        const [date, listOk, listFail] =
+            await NmFoodCountService.getFoodCountDateAndParsedInput(`
+3/27
+4 vb
+1 DCM
+4 fire
+6 dfc
+student farm
+`);
+
+        expect(date).toBe('3/27');
+        console.log(date, listOk, listFail);
+        expect(listOk.length).toBe(4);
+
+        const [village, dcm, fw, dfc] = listOk;
+        expect(village.org).toBe('Village Bakery');
+        expect(dcm.org).toBe('Davis Community Meals');
+        expect(fw.org).toBe('Fire Wings');
+        expect(dfc.org).toBe('Davis Food Co-op');
+
+        expect(listFail.length).toBe(1);
+    });
+
     test('getting the right date format', async () => {
         const a = ParseContentService.dateFormat(
             new Date('July 21, 1983 01:15:00')

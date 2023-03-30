@@ -8,8 +8,6 @@ export class GoogleSecretService {
         const [version] = await secretmanagerClient.accessSecretVersion({
             name
         });
-        console.log(version as any);
-        console.log((version as any).payload?.data?.toString('utf8'));
 
         return JSON.parse(
             (version as any).payload?.data?.toString('utf8') || '{}'

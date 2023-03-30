@@ -63,6 +63,15 @@ export const FoodCountInputEvent = async (message: Message) => {
         parsedInputErrorList
     ] = NmFoodCountService.getParsedChannelAndContent(channel.name, content);
 
+    console.log(
+        channelStatus,
+        inputStatus,
+        // did we get the date from the content, from the channel name, or just today by default?
+        dateStatus,
+        date,
+        parsedInputList,
+        parsedInputErrorList
+    );
     // if we are not in a night or count channel
     // we do not send a message, we simply get out
     if ('INVALID_CHANNEL' === channelStatus) {

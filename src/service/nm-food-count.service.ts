@@ -132,17 +132,19 @@ Example:
     }
 
     //  this is our main hook for getting the food count input from content
-    static getParsedChannelAndContent(
+    static async getParsedChannelAndContent(
         channelName: string,
         content: string
-    ): [
-        FoodCountChannelStatusType,
-        FoodCountInputStatusType,
-        FoodCountInputDateStatusType,
-        string,
-        FoodCountParsedInputModel[],
-        FoodCountParsedInputModel[]
-    ] {
+    ): Promise<
+        [
+            FoodCountChannelStatusType,
+            FoodCountInputStatusType,
+            FoodCountInputDateStatusType,
+            string,
+            FoodCountParsedInputModel[],
+            FoodCountParsedInputModel[]
+        ]
+    > {
         const channelStatus = this.getChannelStatus(channelName);
 
         let inputStatus: FoodCountInputStatusType = 'INVALID',
@@ -157,7 +159,7 @@ Example:
         }
 
         const [dateParsed, parsedInputList, parsedInputErrorList] =
-            this.getFoodCountDateAndParsedInput(content);
+            await this.getFoodCountDateAndParsedInput(content);
 
         dateStatus = dateParsed ? 'DATE_PARSED' : 'DATE_TODAY';
 
@@ -203,6 +205,18 @@ Example:
         );
     }
 
+    static async getOrgAndNodeFromString(
+        s: string
+    ): Promise<[string, string, string]> {
+        const a = s.split(',');
+        const fuzzyOrg = a[0]?.trim() || '',
+            note = a[1]?.trim() || '',
+            org =
+                (await this.getOrgListFromFuzzyString(fuzzyOrg)).shift() || '';
+
+        return [org, fuzzyOrg, note];
+    }
+
     static async getOrgListFromFuzzyString(
         orgFuzzy: string
     ): Promise<string[]> {
@@ -219,44 +233,49 @@ Example:
      * @param content string content that is multiline
      * @returns a date and a food count input list
      */
-    static getFoodCountDateAndParsedInput(
+    static async getFoodCountDateAndParsedInput(
         content: string
-    ): [
-        string,
-        FoodCountParsedInputSuccessModel[],
-        FoodCountParsedInputFailModel[]
-    ] {
-        let date = this.parseDateFromContent(content);
+    ): Promise<
+        [
+            string,
+            FoodCountParsedInputSuccessModel[],
+            FoodCountParsedInputFailModel[]
+        ]
+    > {
+        let [date, contentLessDate] = this.parseDateFromContent(content);
 
         // TODO: parse the date and lines
         //const orgList = NmFoodCountService.getOrgListFromFuzzyString();
-        const inputList = content
+        const inputList = contentLessDate
             .split('\n')
             .map((a) => a.trim())
             .filter((a) => !!a);
-        let lbs = 0,
-            org = '',
-            orgFuzzy = '',
-            note = '',
-            filterString = '',
-            status: FoodCountInputDataStatusType = 'OK';
+        const inputDataList: FoodCountParsedInputModel[] = [];
+        for (const a of inputList) {
+            let status: FoodCountInputDataStatusType = 'OK';
+            const [lbs, filterString] = this.getLbsAndString(a);
 
-        if (!lbs && !org) {
-            status = 'NO_LBS_OR_ORG';
-        } else if (!lbs) {
-            status = 'NO_LBS';
-        } else if (!org) {
-            status = 'NO_ORG';
+            // todo: check for lbs first, so we save a trip to the db
+            const [org, orgFuzzy, note] = await this.getOrgAndNodeFromString(
+                filterString
+            );
+            if (!lbs && !org) {
+                status = 'NO_LBS_OR_ORG';
+            } else if (!lbs) {
+                status = 'NO_LBS';
+            } else if (!org) {
+                status = 'NO_ORG';
+            }
+
+            inputDataList.push({
+                status,
+                lbs,
+                org,
+                filterString,
+                orgFuzzy,
+                note
+            });
         }
-
-        const inputDataList = inputList.map((a) => ({
-            status,
-            lbs,
-            org,
-            filterString,
-            orgFuzzy,
-            note
-        }));
         // todo: get the date from content if any
         return [
             // todo: get the date
@@ -282,8 +301,8 @@ Example:
             contentList.shift();
             // get rid of any lbs or pounds text
             if (
-                contentList[0].toLowerCase() === 'lbs' ||
-                contentList[0].toLowerCase() === 'pounds'
+                contentList[0]?.toLowerCase() === 'lbs' ||
+                contentList[0]?.toLowerCase() === 'pounds'
             ) {
                 contentList.shift();
             }
@@ -360,7 +379,7 @@ Example:
     // todo: i think this sucks. there must be an easier way to do this, like just ask them for the date in the confirm?
     // ok, we are going with a different method of parsing date: either we get the day from the channel name, or we
     // ask for a confirmation in the food-count channel.
-    static parseDateFromContent(s: string): string {
+    static parseDateFromContent(s: string): [string, string] {
         // we simply want to know if the start of the string looks like mm/dd/yyyy or mm/dd
         const potentialDate = s
             .trim()
@@ -372,41 +391,42 @@ Example:
 
         // if it is too short or long
         if (potentialDate.length < 2 || potentialDate.length > 3) {
-            return '';
+            return ['', s];
         }
 
         // if any of the strings is not a number
         for (const i of potentialDate) {
             if (isNaN(+i)) {
-                return '';
+                return ['', s];
             }
         }
 
         // it is not a month
         if (+potentialDate[0] > 12 || +potentialDate[0] < 1) {
-            return '';
+            return ['', s];
         }
 
         // it is not a day of the month
         if (+potentialDate[1] > 31 || +potentialDate[1] < 1) {
-            return '';
+            return ['', s];
         }
 
         // it is not a year
         if (+potentialDate[2] && potentialDate[2].length > 5) {
-            return '';
+            return ['', s];
         }
 
         const theYear = new Date().getFullYear();
 
         // it is not a full year, make it full
-        if (potentialDate[2].length == 2) {
+        if (potentialDate[2] && potentialDate[2]?.length == 2) {
             potentialDate[2] = ('' + theYear).slice(0, 2) + potentialDate[2];
         }
 
-        return (
+        return [
             potentialDate.join('/') +
-            (potentialDate.length === 2 ? '' : '/' + theYear)
-        );
+                (potentialDate.length === 2 ? '' : '/' + theYear),
+            s.trim().replace(potentialDate.join('/'), '').trim()
+        ];
     }
 }

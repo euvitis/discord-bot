@@ -39,7 +39,6 @@ export async function getOrgList(
         'org!A3:C',
         GSPREAD_CORE_ID
     )) || []) as [string, string, string][];
-
     OrgCacheList = r
         .filter(([status, name]) => {
             if (active && status !== GSPREAD_CORE_ACTIVE_STATE_LIST[0]) {
@@ -53,8 +52,13 @@ export async function getOrgList(
 
             // otherwise return just the name
             return {
-                name,
-                nameAltList: nameAltList.split(',').filter((a) => a.trim())
+                name: name.trim(),
+                nameAltList:
+                    // spreadsheet service does not return a value if there is nothing defined
+                    nameAltList
+                        ?.split(',')
+                        .filter((a) => a.trim())
+                        .map((a) => a.trim()) || []
             };
         });
 
