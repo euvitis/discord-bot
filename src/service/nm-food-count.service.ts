@@ -262,6 +262,12 @@ Example:
             const [org, orgFuzzy, note] = await this.getOrgAndNodeFromString(
                 filterString
             );
+
+            // so this is important because we can
+            // use the status here to decide if we prompt
+            // user or not. IE in a night channel,
+            // if we get a list of orgs, maybe we prompt but otherwise no
+            // in the count channel, we always prompt
             if (!lbs && !org) {
                 status = 'NO_LBS_OR_ORG';
             } else if (!lbs) {
