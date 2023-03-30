@@ -7,14 +7,14 @@ jest.setTimeout(20000);
 describe('nm-person.service', () => {
     test('make sure we can get a column range', async () => {
         expect(NmPersonService.getColumnRangeName('DISCORD_ID')).toBe(
-            'person!A'
+            'person!N'
         );
         expect(NmPersonService.getColumnRangeName('STATUS', 3)).toBe(
-            'person!B3'
+            'person!A3'
         );
-        expect(NmPersonService.getColumnRangeName('EMAIL')).toBe('person!D');
+        expect(NmPersonService.getColumnRangeName('EMAIL')).toBe('person!C');
         expect(NmPersonService.getColumnRangeName('EMAIL', 1, 'F')).toBe(
-            'person!D1:F'
+            'person!C1:F'
         );
     });
 });

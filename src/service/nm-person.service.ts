@@ -165,7 +165,7 @@ export class NmPersonService {
 
     // returns the full range for all the data minus the header
     static getFullPersonDataRangeName(): string {
-        return `${CORE_PERSON_SHEET}!A${DATA_OFFSET}${ColumnMap.LAST_COLUMN}`;
+        return `${CORE_PERSON_SHEET}!A${DATA_OFFSET}:${ColumnMap.LAST_COLUMN}`;
     }
 
     // returns a range for a data set minus the header
