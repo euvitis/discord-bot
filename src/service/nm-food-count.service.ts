@@ -162,7 +162,7 @@ Example:
             await this.getFoodCountDateAndParsedInput(content);
 
         dateStatus = dateParsed ? 'DATE_PARSED' : 'DATE_TODAY';
-
+        console.log(date, dateStatus, dateParsed);
         // the date is either in the content, or it is today
         if (dateStatus === 'DATE_PARSED') {
             date = dateParsed;
@@ -193,7 +193,7 @@ Example:
             channelStatus,
             inputStatus,
             dateStatus,
-            '',
+            date,
             parsedInputList,
             parsedInputErrorList
         ];
@@ -220,8 +220,11 @@ Example:
     static async getOrgListFromFuzzyString(
         orgFuzzy: string
     ): Promise<string[]> {
-        const orgList = await getOrgList();
-        const searcher = new FuzzySearch(orgList, ['name', 'nameAltList'], {
+        const orgList = (await getOrgList()).map((a) => ({
+            ...a,
+            nameSearchable: a.nameAltList.join(' ') + ' ' + a.name
+        }));
+        const searcher = new FuzzySearch(orgList, ['nameSearchable'], {
             caseSensitive: false,
             sort: true
         });
@@ -382,10 +385,11 @@ Example:
     static parseDateFromContent(s: string): [string, string] {
         // we simply want to know if the start of the string looks like mm/dd/yyyy or mm/dd
         const potentialDate = s
-            .trim()
-            .split('\n')[0]
-            ?.split(' ')[0]
-            ?.split('/');
+                .trim()
+                .split('\n')[0]
+                ?.split(' ')[0]
+                ?.split('/'),
+            originalDate = potentialDate.join('/');
 
         // in this case we don't have anything that looks like our date
 
@@ -412,21 +416,23 @@ Example:
         }
 
         // it is not a year
-        if (+potentialDate[2] && potentialDate[2].length > 5) {
+        if (+potentialDate[2] && potentialDate[2].length > 4) {
             return ['', s];
         }
 
-        const theYear = new Date().getFullYear();
+        const theYear = '' + new Date().getFullYear();
 
-        // it is not a full year, make it full
-        if (potentialDate[2] && potentialDate[2]?.length == 2) {
-            potentialDate[2] = ('' + theYear).slice(0, 2) + potentialDate[2];
+        if (potentialDate.length == 2) {
+            // if no year, add
+            potentialDate[2] = theYear;
+        } else if (potentialDate[2].length === 2) {
+            // if year is two digits, make it four
+            potentialDate[2] = theYear.slice(0, 2) + potentialDate[2];
         }
 
         return [
-            potentialDate.join('/') +
-                (potentialDate.length === 2 ? '' : '/' + theYear),
-            s.trim().replace(potentialDate.join('/'), '').trim()
+            potentialDate.join('/'),
+            s.trim().replace(originalDate, '').trim()
         ];
     }
 }

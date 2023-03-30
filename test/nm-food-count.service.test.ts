@@ -10,18 +10,22 @@ describe('NmFoodCountService', () => {
 4 vb
 1 DCM
 4 fire
+4 fw
+2 odd fellws
 6 dfc
 student farm
 `);
 
-        expect(date).toBe('3/27');
+        expect(date).toBe('3/27/2023');
         console.log(date, listOk, listFail);
-        expect(listOk.length).toBe(4);
+        expect(listOk.length).toBe(6);
 
-        const [village, dcm, fw, dfc] = listOk;
+        const [village, dcm, fire, fw, oddf, dfc] = listOk;
         expect(village.org).toBe('Village Bakery');
         expect(dcm.org).toBe('Davis Community Meals');
+        expect(fire.org).toBe('Fire Wings');
         expect(fw.org).toBe('Fire Wings');
+        expect(oddf.org).toBe("Odd Fellow's Hall");
         expect(dfc.org).toBe('Davis Food Co-op');
 
         expect(listFail.length).toBe(1);
