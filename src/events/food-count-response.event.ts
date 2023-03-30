@@ -42,6 +42,9 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
         // delete the original input message on cancel
         // todo: consider leaving it?
         m?.fetch(cache.messageInputId).then((msg: Message) => {
+            FoodCountInputCache.update(idCache, {
+                messageInputId: ''
+            });
             msg.delete();
             debug('deleted user input message!');
         });
@@ -49,6 +52,9 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
         // if the bot response has not been deleted, delete it
         // (this is the cancel button)
         if (cache.messageResponseId) {
+            FoodCountInputCache.update(idCache, {
+                messageResponseId: ''
+            });
             m?.fetch(cache.messageResponseId).then((msg: Message) => {
                 debug('deleted bot response message!');
                 msg.delete();
