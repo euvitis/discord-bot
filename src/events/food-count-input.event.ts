@@ -61,7 +61,10 @@ export const FoodCountInputEvent = async (message: Message) => {
         date,
         parsedInputList,
         parsedInputErrorList
-    ] = NmFoodCountService.getParsedChannelAndContent(channel.name, content);
+    ] = await NmFoodCountService.getParsedChannelAndContent(
+        channel.name,
+        content
+    );
 
     console.log(
         channelStatus,
