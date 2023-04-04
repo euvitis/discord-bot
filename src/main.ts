@@ -1,44 +1,37 @@
-import { loadCommands, publishCommands } from './lib/commands';
-import { DISCORD_TOKEN } from './lib/dotenv';
+import { FoodCountInputEvent, FoodCountResponseEvent } from './events';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
-
+import { NmConfigService } from './service';
 async function main() {
     const client = new Client({
-        intents: [GatewayIntentBits.Guilds]
+        intents: [
+            GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.MessageContent
+        ]
     });
-
-    const commands = await loadCommands();
-    // publishCommands(commands);
-
+    // todo: do we want this on every connection?
+    // const commands = await loadCommands();
+    // client.on(Events.InteractionCreate, async (c) => {
+    //     console.log(c);
+    //     console.log(`Hi!`);
+    // });
     client.once(Events.ClientReady, async (c) => {
         console.log(`Ready! Logged in as ${c.user.tag}`);
     });
+    // todo: this will file on every message sent. we probably
+    // want a big switchboard and fire different stuff depending on
+    // parameters
+    client.on(Events.MessageCreate, FoodCountInputEvent);
 
-    client.on(Events.InteractionCreate, async (interaction) => {
-        if (!interaction.isChatInputCommand()) return;
+    // todo: this will file on every interaction sent. we probably
+    // want a big switchboard and fire different stuff depending on
+    // parameters
+    client.on(Events.InteractionCreate, FoodCountResponseEvent);
 
-        const command = commands.get(interaction.commandName);
-
-        if (!command) {
-            console.error(
-                `No command matching ${interaction.commandName} was found.`
-            );
-            return;
-        }
-
-        try {
-            await command.execute(interaction);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply({
-                content: 'There was an error while executing this command!',
-                ephemeral: true
-            });
-        }
-    });
-
-    // Log in to Discord with your client's token
-    client.login(DISCORD_TOKEN);
+    const {
+        discordConfig: { appToken }
+    } = await NmConfigService.getParsed();
+    client.login(appToken);
 }
 
 main();

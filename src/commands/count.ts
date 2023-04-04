@@ -3,10 +3,8 @@ import {
     ChatInputCommandInteraction,
     SlashCommandBuilder
 } from 'discord.js';
-import {
-    appendFoodCount,
-    getOrgNameList
-} from '../lib/night-market-data.service';
+import { appendFoodCount } from '../service/nm-inventory.service';
+import { getOrgNameList } from '../service/nm-org.service';
 
 module.exports = {
     async get_data() {
@@ -36,7 +34,7 @@ module.exports = {
         const amu = interaction.options.getNumber('amount');
 
         if (!org || !amu) {
-            return
+            return;
         }
 
         // report back to the discord
@@ -45,11 +43,15 @@ module.exports = {
         const date = new Date();
 
         // update the spread sheet
-        appendFoodCount([{
+        appendFoodCount({
             org,
-            quantity: String(amu),
-            date: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
-            unit: 'lbs'
-        }]);
+            lbs: amu,
+            date: `${
+                date.getMonth() + 1
+            }/${date.getDate()}/${date.getFullYear()}`,
+            // todo: get this from data
+            reporter: 'christianco@gmail.com',
+            note: ''
+        });
     }
 };

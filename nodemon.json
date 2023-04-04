@@ -6,6 +6,7 @@
   "ignore": [],
   "exec": "npx ts-node ./src/main.ts",
   "env": {
-    "NODE_ENV": "dev"
+    "NODE_ENV": "dev",
+    "DEBUG": "nm:*"
   }
 }

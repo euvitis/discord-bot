@@ -20,11 +20,11 @@
     ]
   },
   "include": [
-    "src",
-    "test/night-market-data.service.test.ts"
+    "src"
   ],
   "exclude": [
     "node_modules",
-    "build"
+    "build",
+    "test"
   ]
 }
