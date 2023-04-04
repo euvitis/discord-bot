@@ -3,7 +3,8 @@ import { ActiveStateType } from './model/night-market.model';
 /**
  * CORE DATA
  */
-
+// todo: this is config, not const
+// todo: we want an env config, so test and prod vars
 // the  spreadsheet id for the core data model where people and orgs are kept
 export const GSPREAD_CORE_ID = '17-BwSUuXOD_mawagA_cEjP9kVkWCC_boCUV_FikeDek';
 
