@@ -26,8 +26,8 @@ const Gspread = nm_config_service_1.NmConfigService.getParsed().then((config) =>
     return [googleapis_1.google.sheets({ version: 'v4', auth }), auth];
 });
 class GoogleSpreadsheetsService {
-    static alphabetIndexFromLetter(a) {
-        const n = exports.Alphabet.join().indexOf(a);
+    static columnIndexFromLetter(a) {
+        const n = exports.Alphabet.indexOf(a.toUpperCase());
         if (n < 0) {
             throw new Error('that letter does not exists');
         }
@@ -200,7 +200,7 @@ class GoogleSpreadsheetsService {
                 return true;
             }
             catch (error) {
-                console.log(error);
+                console.error(error);
             }
             return false;
         });

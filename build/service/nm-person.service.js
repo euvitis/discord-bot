@@ -44,12 +44,18 @@ class NmPersonService {
     }
     static getEmailList() {
         return __awaiter(this, void 0, void 0, function* () {
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('EMAIL'), GSPREAD_CORE_ID).then((a) => a[0]);
+            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('EMAIL'), GSPREAD_CORE_ID).then((a) => a.map((b) => b[0]));
         });
     }
     static getAllData() {
         return __awaiter(this, void 0, void 0, function* () {
             return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID);
+        });
+    }
+    static getPersonRangeByDiscorIdOrEmail(idOrEmail) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const personRange = '';
+            return personRange;
         });
     }
     static getPersonByDiscorIdOrEmail(idOrEmail) {
@@ -75,7 +81,7 @@ class NmPersonService {
     }
     static getEmailByDiscordId(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            const [status, name, email] = yield this.getRowByDiscordIdOrEmail(id);
+            const [_status, _name, email] = yield this.getRowByDiscordIdOrEmail(id);
             return email;
         });
     }
@@ -94,29 +100,29 @@ class NmPersonService {
         });
     }
     static getRowIndexByDiscordIdOrEmail(idOrEmail) {
-        idOrEmail = idOrEmail.toLowerCase().trim();
-        const emailIndex = this.getColumnIndexByName('EMAIL');
-        const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
-        return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID).then((a) => a.findIndex((a) => {
-            return (idOrEmail === a[emailIndex] ||
-                idOrEmail === a[discordIdIndex]);
-        }));
+        return __awaiter(this, void 0, void 0, function* () {
+            idOrEmail = idOrEmail.toLowerCase().trim();
+            const emailIndex = this.getColumnIndexByName('EMAIL');
+            const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
+            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID).then((a) => a.findIndex((a) => {
+                var _a, _b;
+                return (idOrEmail === ((_a = a[emailIndex]) === null || _a === void 0 ? void 0 : _a.trim()) ||
+                    idOrEmail === ((_b = a[discordIdIndex]) === null || _b === void 0 ? void 0 : _b.trim()));
+            }) + 1);
+        });
     }
     // toggle a person state to active
     static setActiveState(email, activeState) {
         return __awaiter(this, void 0, void 0, function* () {
             if (nm_const_1.GSPREAD_CORE_ACTIVE_STATE_LIST.indexOf(activeState) < 0) {
-                throw new Error('Must set active state');
+                throw new Error(`Must set active state to one of ${nm_const_1.GSPREAD_CORE_ACTIVE_STATE_LIST.join(', ')}`);
             }
             // get all the person rows
-            const personList = yield this.getEmailList();
-            // find a match to email
-            email = email.toLowerCase().trim();
-            const rowIndex = personList === null || personList === void 0 ? void 0 : personList.findIndex((a) => a.toLowerCase().trim() === email);
-            if (typeof rowIndex === 'undefined') {
+            const rowIndex = yield this.getRowIndexByDiscordIdOrEmail(email);
+            if (!rowIndex) {
                 throw new Error('person does not exists');
             }
-            const range = this.getColumnRangeName('STATUS', rowIndex + 1);
+            const range = this.getColumnRangeName('STATUS', rowIndex);
             // update cell for active at row and column index (add method to GSpreadService)
             yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsWrite([[activeState]], range, GSPREAD_CORE_ID);
             return range;
@@ -124,10 +130,14 @@ class NmPersonService {
     }
     // gets the row index number from named column
     static getColumnIndexByName(columnName) {
-        return google_spreadsheets_service_1.GoogleSpreadsheetsService.alphabetIndexFromLetter(ColumnMap[columnName]);
+        return google_spreadsheets_service_1.GoogleSpreadsheetsService.columnIndexFromLetter(ColumnMap[columnName]);
     }
-    // returns the full range for all the data minus the header
+    // returns the full range for all the person data
     static getFullPersonDataRangeName() {
+        return `${CORE_PERSON_SHEET}!A:${ColumnMap.LAST_COLUMN}`;
+    }
+    // returns the full range for all the person data minus the header
+    static getFullPersonDataRangeNameWithoutHeader() {
         return `${CORE_PERSON_SHEET}!A${DATA_OFFSET}:${ColumnMap.LAST_COLUMN}`;
     }
     // returns a range for a data set minus the header
@@ -140,6 +150,14 @@ class NmPersonService {
     // optionally, get columns that follow
     endCol) {
         return `${CORE_PERSON_SHEET}!${ColumnMap[columnName]}${index ? index : ''}${endCol ? `:${endCol}` : ''}`;
+    }
+    static getCellRangeName(columnName, 
+    // defaults to full column
+    index) {
+        if (!index) {
+            throw new Error('must have an index to get a row range name');
+        }
+        return `${CORE_PERSON_SHEET}!${ColumnMap[columnName]}${index ? index : ''}`;
     }
 }
 exports.NmPersonService = NmPersonService;

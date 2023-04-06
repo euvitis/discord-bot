@@ -27,6 +27,8 @@ const FoodCountResponseEvent = (interaction) => __awaiter(void 0, void 0, void 0
     const { customId } = interaction;
     // we gave it an action name, and a cache id
     const [idName, idCache] = customId.split('--');
+    // this kills the interaction so it doesn't report a failure
+    yield interaction.deferUpdate();
     // here we can use that first action name to do different stuff
     // depending on what button it is
     if (idName === 'food-count-cancel') {
@@ -92,8 +94,6 @@ const FoodCountResponseEvent = (interaction) => __awaiter(void 0, void 0, void 0
         }
         // delete the cache
         food_count_input_event_1.FoodCountInputCache.delete(idCache);
-        // this kills the interaction so it doesn't report a failure
-        yield interaction.deferUpdate();
     }
 });
 exports.FoodCountResponseEvent = FoodCountResponseEvent;
