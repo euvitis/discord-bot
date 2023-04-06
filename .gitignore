@@ -13,4 +13,5 @@ package-lock.json
 .vscode
 
 # Build output
-build
+# we barely have enough memory to build crabapple on our cheap ass instance, so I'm building locally and keeping it in the rpo for now
+# build
