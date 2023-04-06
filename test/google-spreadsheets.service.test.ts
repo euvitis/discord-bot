@@ -4,10 +4,10 @@ import {
     Alphabet
 } from '../src/service/google-spreadsheets.service';
 
-import {
-    GSPREAD_INVENTORY_ID,
-    GSPREAD_SHEET_INVENTORY_HEADERS
-} from '../src/nm-const';
+import { GSPREAD_SHEET_INVENTORY_HEADERS } from '../src/nm-const';
+import { Config } from '../src/config';
+
+const { GSPREAD_INVENTORY_ID } = Config();
 
 describe('gspread.service.ts', () => {
     // test('does a sheet exist', async () => {
@@ -23,9 +23,13 @@ describe('gspread.service.ts', () => {
     // });
 
     test('make sure our alphabet function works', () => {
-        // todo: move this to gspread test
         expect(Alphabet[0]).toBe('A');
         expect(Alphabet[25]).toBe('Z');
+    });
+
+    test('make sure our alphabet index method works', () => {
+        expect(GoogleSpreadsheetsService.columnIndexFromLetter('A')).toBe(0);
+        expect(GoogleSpreadsheetsService.columnIndexFromLetter('Z')).toBe(25);
     });
 
     test('can we  CREATE and DESTOY and ADD ROWS and DELETE ROWS to a sheet', async () => {
@@ -63,13 +67,10 @@ describe('gspread.service.ts', () => {
             'abc-test',
             GSPREAD_INVENTORY_ID
         );
-
-        console.log(c);
         const d = await GoogleSpreadsheetsService.rangeGet(
             'abc-test!A:B',
             GSPREAD_INVENTORY_ID
         );
-        console.log(d);
         await GoogleSpreadsheetsService.rowsDelete(
             1,
             2,

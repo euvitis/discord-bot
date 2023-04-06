@@ -23,8 +23,8 @@ const Gspread = NmConfigService.getParsed().then((config) => {
 });
 
 export class GoogleSpreadsheetsService {
-    static alphabetIndexFromLetter(a: string): number {
-        const n = Alphabet.join().indexOf(a);
+    static columnIndexFromLetter(a: string): number {
+        const n = Alphabet.indexOf(a.toUpperCase());
         if (n < 0) {
             throw new Error('that letter does not exists');
         }
@@ -218,7 +218,7 @@ export class GoogleSpreadsheetsService {
             await gspread.spreadsheets.batchUpdate(request);
             return true;
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
         return false;
     }

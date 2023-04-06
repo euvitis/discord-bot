@@ -17,7 +17,6 @@ student farm
 `);
 
         expect(date).toBe('3/27/2023');
-        console.log(date, listOk, listFail);
         expect(listOk.length).toBe(6);
 
         const [village, dcm, fire, fw, oddf, dfc] = listOk;

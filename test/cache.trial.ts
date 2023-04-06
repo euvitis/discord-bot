@@ -1,3 +1,5 @@
+// this is not a test, it's a module so we can test cache across modules
+
 import { CacheService } from '../src/service';
 export const TestCache = CacheService<{ some: string }>('food-count');
 

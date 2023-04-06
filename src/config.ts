@@ -4,7 +4,7 @@
 // roll them together I don't think - keeps it simple
 
 // right now dev and test are the same
-type Env = 'dev' | 'test' | 'prod';
+type EnvType = 'dev' | 'test' | 'prod';
 
 interface Config {
     // the  spreadsheet id for the core data model where people and orgs are kept
@@ -14,7 +14,7 @@ interface Config {
 }
 
 const EnvConfig: {
-    [k in Env]: Config;
+    [k in EnvType]: Config;
 } = {
     dev: {
         GSPREAD_CORE_ID: '17-BwSUuXOD_mawagA_cEjP9kVkWCC_boCUV_FikeDek',
@@ -30,9 +30,10 @@ const EnvConfig: {
         GSPREAD_INVENTORY_ID: '18TujYCUGf4Lko-8VVJtyagmk2SNEouxTTde5opG1eoo'
     }
 };
-if (!EnvConfig[process.env.NODE_ENV as Env]) {
+if (!EnvConfig[process.env.NODE_ENV as EnvType]) {
     console.log('No NODE_ENV set, default to test');
 }
-const env = (process.env.NODE_ENV || 'dev') as Env;
-console.log(env);
-export const Config = () => EnvConfig[env];
+export const Config = (
+    // allow env to be passed so we can test config in any env
+    env = (process.env.NODE_ENV || 'test') as EnvType
+) => EnvConfig[env];

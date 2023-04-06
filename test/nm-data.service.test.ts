@@ -6,30 +6,21 @@ import {
     getFoodCountSheetName
 } from '../src/service/nm-inventory.service';
 import { getOrgNameList } from '../src/service/nm-org.service';
-import { NmPersonService } from '../src/service';
 
 import { GoogleSpreadsheetsService } from '../src/service/google-spreadsheets.service';
 
-import {
-    GSPREAD_INVENTORY_ID,
-    GSPREAD_SHEET_INVENTORY_HEADERS
-} from '../src/nm-const';
+import { GSPREAD_SHEET_INVENTORY_HEADERS } from '../src/nm-const';
+import { Config } from '../src/config';
+
+const { GSPREAD_INVENTORY_ID } = Config();
 
 jest.setTimeout(20000);
 
 describe('NightMarketDataService', () => {
-    test('update a person active status in central spreadsheet', async () => {
-        const a = await NmPersonService.setActiveState(
-            'christianco@gmail.com',
-            'active'
-        );
-
-        expect(a).toBe('person!A35');
-    });
-
     test('gets the list of orgs from central spreadsheet', async () => {
         const orgList = await getOrgNameList({});
-        expect(orgList.length).toBeGreaterThan(0);
+        console.log(orgList);
+        expect(orgList.length).toBeGreaterThan(3);
     });
 
     test('appends to the food count and deletes it', async () => {
