@@ -34,4 +34,6 @@ async function main() {
     client.login(appToken);
 }
 
+console.log(new Date());
+
 main();
