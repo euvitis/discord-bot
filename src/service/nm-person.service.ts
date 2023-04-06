@@ -1,9 +1,12 @@
 import { ActiveStateType, PersonModel } from '../model/night-market.model';
-import { GSPREAD_CORE_ACTIVE_STATE_LIST, GSPREAD_CORE_ID } from '../nm-const';
+import { GSPREAD_CORE_ACTIVE_STATE_LIST } from '../nm-const';
 import { GoogleSpreadsheetsService } from './google-spreadsheets.service';
+
+import { Config } from '../config';
 
 type ColumnMapKeyType = keyof typeof ColumnMap;
 
+const { GSPREAD_CORE_ID } = Config();
 // makes it easier to find and change where data is in sheet columns
 const ColumnMap = {
         EMAIL: 'C',

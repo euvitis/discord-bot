@@ -1,9 +1,12 @@
 import { GoogleSpreadsheetsService } from './google-spreadsheets.service';
 import {
-    GSPREAD_INVENTORY_ID,
     GSPREAD_SHEET_INVENTORY_HEADERS,
     GSPREAD_INVENTORY_SHEET_PREFIX
 } from '../nm-const';
+
+import { Config } from '../config';
+
+const { GSPREAD_INVENTORY_ID } = Config();
 
 type FoodCountList = [string, string, number, string, string];
 

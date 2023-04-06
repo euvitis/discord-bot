@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GSPREAD_SHEET_INVENTORY_HEADERS = exports.GSPREAD_INVENTORY_SHEET_PREFIX = exports.GSPREAD_INVENTORY_ID = exports.GSPREAD_CORE_ACTIVE_STATE_LIST = exports.GSPREAD_CORE_ID = void 0;
+exports.GSPREAD_SHEET_INVENTORY_HEADERS = exports.GSPREAD_INVENTORY_SHEET_PREFIX = exports.GSPREAD_CORE_ACTIVE_STATE_LIST = exports.GSPREAD_CORE_ID = void 0;
 /**
  * CORE DATA
  */
@@ -16,8 +16,9 @@ exports.GSPREAD_CORE_ACTIVE_STATE_LIST = [
 /**
  * FOOD COUNT
  */
-// the  spreadsheet id for where food counts are kept
-exports.GSPREAD_INVENTORY_ID = '1uHQ6oL84fxlu3bXYxPIU7s1-T2RX0uWzCNC1Hxs8sMM';
+// // the  spreadsheet id for where food counts are kept
+// export const GSPREAD_INVENTORY_ID =
+//    '1uHQ6oL84fxlu3bXYxPIU7s1-T2RX0uWzCNC1Hxs8sMM';
 // the prefix for food-count sheets within the inventory sheet - we make a new one every year
 // sheet name will look like: "food-count 2023"
 exports.GSPREAD_INVENTORY_SHEET_PREFIX = 'food-count';

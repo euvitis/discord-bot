@@ -1,7 +1,10 @@
 import { ActiveStateType } from '../model/night-market.model';
-import { GSPREAD_CORE_ACTIVE_STATE_LIST, GSPREAD_CORE_ID } from '../nm-const';
+import { GSPREAD_CORE_ACTIVE_STATE_LIST } from '../nm-const';
 import { GoogleSpreadsheetsService } from './google-spreadsheets.service';
 
+import { Config } from '../config';
+
+const { GSPREAD_CORE_ID } = Config();
 interface NmOrgModel {
     name: string;
     nameAltList: string[];

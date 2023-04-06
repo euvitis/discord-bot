@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteLastFoodCount = exports.deleteFoodCountByIndex = exports.appendFoodCount = exports.getFoodCount = exports.fromFoodCountMapToList = exports.getFoodCountSheetName = void 0;
 const google_spreadsheets_service_1 = require("./google-spreadsheets.service");
 const nm_const_1 = require("../nm-const");
+const config_1 = require("../config");
+const { GSPREAD_INVENTORY_ID } = (0, config_1.Config)();
 function getFoodCountSheetName(
 // defaults to current year
 year = new Date().getFullYear()) {
@@ -24,7 +26,7 @@ function fromFoodCountMapToList({ date, org, lbs, reporter, note }) {
 exports.fromFoodCountMapToList = fromFoodCountMapToList;
 function getFoodCount(sheetName) {
     return __awaiter(this, void 0, void 0, function* () {
-        return ((yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(`'${sheetName}'!A2:E`, nm_const_1.GSPREAD_INVENTORY_ID)) || []);
+        return ((yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(`'${sheetName}'!A2:E`, GSPREAD_INVENTORY_ID)) || []);
     });
 }
 exports.getFoodCount = getFoodCount;
@@ -33,14 +35,14 @@ function appendFoodCount(foodCount,
 sheet = getFoodCountSheetName()) {
     return __awaiter(this, void 0, void 0, function* () {
         // we create a new sheet every year, so we test if the sheet exists, and create it if not
-        if (yield google_spreadsheets_service_1.GoogleSpreadsheetsService.sheetCreateIfNone(sheet, nm_const_1.GSPREAD_INVENTORY_ID)) {
-            yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsAppend([nm_const_1.GSPREAD_SHEET_INVENTORY_HEADERS], sheet, nm_const_1.GSPREAD_INVENTORY_ID);
+        if (yield google_spreadsheets_service_1.GoogleSpreadsheetsService.sheetCreateIfNone(sheet, GSPREAD_INVENTORY_ID)) {
+            yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsAppend([nm_const_1.GSPREAD_SHEET_INVENTORY_HEADERS], sheet, GSPREAD_INVENTORY_ID);
         }
         // rowsAppend returns an array tuple of range string, and index inserted
         return [
-            yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsAppend([fromFoodCountMapToList(foodCount)], sheet, nm_const_1.GSPREAD_INVENTORY_ID),
+            yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsAppend([fromFoodCountMapToList(foodCount)], sheet, GSPREAD_INVENTORY_ID),
             // the length minus 1 is this the zero index of the inserted count
-            (yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(`'${sheet}'!A1:A`, nm_const_1.GSPREAD_INVENTORY_ID)).length - 1
+            (yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(`'${sheet}'!A1:A`, GSPREAD_INVENTORY_ID)).length - 1
         ];
     });
 }
@@ -49,8 +51,8 @@ function deleteFoodCountByIndex(startIndex,
 // todo: this is dangerous? we will delete the last row in tue current sheet by default
 sheetName = getFoodCountSheetName()) {
     return __awaiter(this, void 0, void 0, function* () {
-        const sheetId = yield google_spreadsheets_service_1.GoogleSpreadsheetsService.getSheetIdByName(sheetName, nm_const_1.GSPREAD_INVENTORY_ID);
-        yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsDelete(startIndex, startIndex + 1, sheetId, nm_const_1.GSPREAD_INVENTORY_ID);
+        const sheetId = yield google_spreadsheets_service_1.GoogleSpreadsheetsService.getSheetIdByName(sheetName, GSPREAD_INVENTORY_ID);
+        yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsDelete(startIndex, startIndex + 1, sheetId, GSPREAD_INVENTORY_ID);
     });
 }
 exports.deleteFoodCountByIndex = deleteFoodCountByIndex;
@@ -58,13 +60,13 @@ function deleteLastFoodCount(
 // todo: this is dangerous? we will delete the last row in tue current sheet by default
 sheetName = getFoodCountSheetName()) {
     return __awaiter(this, void 0, void 0, function* () {
-        const range = (yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(`'${sheetName}'!A:E`, nm_const_1.GSPREAD_INVENTORY_ID)) || [];
+        const range = (yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(`'${sheetName}'!A:E`, GSPREAD_INVENTORY_ID)) || [];
         const lastRowIndex = range.length;
         if (lastRowIndex < 2) {
             console.log('We cannot delete the header');
             return;
         }
-        yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsWrite([['', '', '', '', '']], `'${sheetName}'!A${lastRowIndex}:E${lastRowIndex}`, nm_const_1.GSPREAD_INVENTORY_ID);
+        yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsWrite([['', '', '', '', '']], `'${sheetName}'!A${lastRowIndex}:E${lastRowIndex}`, GSPREAD_INVENTORY_ID);
     });
 }
 exports.deleteLastFoodCount = deleteLastFoodCount;

@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setOrgActiveState = exports.getOrgNameList = exports.getOrgList = void 0;
 const nm_const_1 = require("../nm-const");
 const google_spreadsheets_service_1 = require("./google-spreadsheets.service");
+const config_1 = require("../config");
+const { GSPREAD_CORE_ID } = (0, config_1.Config)();
 // one hour: every hour the org list gets refreshed
 const ORG_LIST_CACHE_EXPIRY = 1000 * 60 * 60;
 let ORG_LIST_CACHE_TIME = Date.now(), OrgCacheList = [];
@@ -30,7 +32,7 @@ function getOrgList({ active = false, flushCache = true } = {
             Date.now() - ORG_LIST_CACHE_TIME < ORG_LIST_CACHE_EXPIRY) {
             return OrgCacheList;
         }
-        const r = ((yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet('org!A3:C', nm_const_1.GSPREAD_CORE_ID)) || []);
+        const r = ((yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet('org!A3:C', GSPREAD_CORE_ID)) || []);
         OrgCacheList = r
             .filter(([status, name]) => {
             if (active && status !== nm_const_1.GSPREAD_CORE_ACTIVE_STATE_LIST[0]) {

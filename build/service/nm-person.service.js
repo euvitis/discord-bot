@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NmPersonService = void 0;
 const nm_const_1 = require("../nm-const");
 const google_spreadsheets_service_1 = require("./google-spreadsheets.service");
+const config_1 = require("../config");
+const { GSPREAD_CORE_ID } = (0, config_1.Config)();
 // makes it easier to find and change where data is in sheet columns
 const ColumnMap = {
     EMAIL: 'C',
@@ -37,17 +39,17 @@ class NmPersonService {
     }
     static getNameList() {
         return __awaiter(this, void 0, void 0, function* () {
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('NAME'), nm_const_1.GSPREAD_CORE_ID).then((a) => a[0]);
+            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('NAME'), GSPREAD_CORE_ID).then((a) => a[0]);
         });
     }
     static getEmailList() {
         return __awaiter(this, void 0, void 0, function* () {
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('EMAIL'), nm_const_1.GSPREAD_CORE_ID).then((a) => a[0]);
+            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('EMAIL'), GSPREAD_CORE_ID).then((a) => a[0]);
         });
     }
     static getAllData() {
         return __awaiter(this, void 0, void 0, function* () {
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), nm_const_1.GSPREAD_CORE_ID);
+            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID);
         });
     }
     static getPersonByDiscorIdOrEmail(idOrEmail) {
@@ -82,7 +84,7 @@ class NmPersonService {
             idOrEmail = idOrEmail.toLowerCase().trim();
             const emailIndex = this.getColumnIndexByName('EMAIL');
             const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
-            const a = yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), nm_const_1.GSPREAD_CORE_ID)
+            const a = yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID)
                 .then((a) => a.filter((a) => {
                 return (idOrEmail === a[emailIndex] ||
                     idOrEmail === a[discordIdIndex]);
@@ -95,7 +97,7 @@ class NmPersonService {
         idOrEmail = idOrEmail.toLowerCase().trim();
         const emailIndex = this.getColumnIndexByName('EMAIL');
         const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
-        return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), nm_const_1.GSPREAD_CORE_ID).then((a) => a.findIndex((a) => {
+        return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID).then((a) => a.findIndex((a) => {
             return (idOrEmail === a[emailIndex] ||
                 idOrEmail === a[discordIdIndex]);
         }));
@@ -116,7 +118,7 @@ class NmPersonService {
             }
             const range = this.getColumnRangeName('STATUS', rowIndex + 1);
             // update cell for active at row and column index (add method to GSpreadService)
-            yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsWrite([[activeState]], range, nm_const_1.GSPREAD_CORE_ID);
+            yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsWrite([[activeState]], range, GSPREAD_CORE_ID);
             return range;
         });
     }
