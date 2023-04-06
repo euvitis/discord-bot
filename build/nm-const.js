@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GSPREAD_SHEET_INVENTORY_HEADERS = exports.GSPREAD_INVENTORY_SHEET_PREFIX = exports.GSPREAD_CORE_ACTIVE_STATE_LIST = exports.GSPREAD_CORE_ID = void 0;
+exports.GSPREAD_SHEET_INVENTORY_HEADERS = exports.GSPREAD_INVENTORY_SHEET_PREFIX = exports.GSPREAD_CORE_ACTIVE_STATE_LIST = void 0;
 /**
  * CORE DATA
  */
 // todo: this is config, not const
 // todo: we want an env config, so test and prod vars
-// the  spreadsheet id for the core data model where people and orgs are kept
-exports.GSPREAD_CORE_ID = '17-BwSUuXOD_mawagA_cEjP9kVkWCC_boCUV_FikeDek';
+// // the  spreadsheet id for the core data model where people and orgs are kept
+// export const GSPREAD_CORE_ID = '17-BwSUuXOD_mawagA_cEjP9kVkWCC_boCUV_FikeDek';
 // across our data model, these strings are used to identify if a resource is active or not
 exports.GSPREAD_CORE_ACTIVE_STATE_LIST = [
     'active',
