@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("./events");
 const discord_js_1 = require("discord.js");
 const service_1 = require("./service");
+const config_1 = require("./config");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const client = new discord_js_1.Client({
@@ -43,4 +44,6 @@ function main() {
     });
 }
 console.log(new Date());
+console.log(process.env.NODE_ENV);
+console.log((0, config_1.Config)());
 main();

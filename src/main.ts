@@ -1,6 +1,7 @@
 import { FoodCountInputEvent, FoodCountResponseEvent } from './events';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { NmConfigService } from './service';
+import { Config } from './config';
 async function main() {
     const client = new Client({
         intents: [
@@ -35,5 +36,7 @@ async function main() {
 }
 
 console.log(new Date());
+console.log(process.env.NODE_ENV);
+console.log(Config());
 
 main();
