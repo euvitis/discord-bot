@@ -41,11 +41,15 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
 
         // delete the original input message on cancel
         // todo: consider leaving it?
-        m?.fetch(cache.messageInputId).then((msg: Message) => {
+        m?.fetch(cache.messageInputId).then(async (msg: Message) => {
             FoodCountInputCache.update(idCache, {
                 messageInputId: ''
             });
-            msg.delete();
+            try {
+                await msg.delete();
+            } catch (e) {
+                console.log(e);
+            }
             debug('deleted user input message!');
         });
 
@@ -55,9 +59,13 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
             FoodCountInputCache.update(idCache, {
                 messageResponseId: ''
             });
-            m?.fetch(cache.messageResponseId).then((msg: Message) => {
+            m?.fetch(cache.messageResponseId).then(async (msg: Message) => {
                 debug('deleted bot response message!');
-                msg.delete();
+                try {
+                    await msg.delete();
+                } catch (e) {
+                    console.log(e);
+                }
             });
         } else {
             debug('no messageResponseId found!');
@@ -73,8 +81,13 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
 
             countChannel.messages
                 ?.fetch(cache.messageCountId)
-                .then((msg: Message) => {
-                    msg.delete();
+                .then(async (msg: Message) => {
+                    try {
+                        await msg.delete();
+                    } catch (e) {
+                        console.log(e);
+                    }
+
                     debug('deleted the count channel user message');
                 });
         } else {

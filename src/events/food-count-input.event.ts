@@ -124,18 +124,37 @@ export const FoodCountInputEvent = async (message: Message) => {
         // now we create our insert event
         const insertTimeout = setTimeout(
             async () => {
-                // TODO: we need to make sure teh count has not been cancelled
-
+                // we need to make sure teh count has not been cancelled
+                // todo: test this
+                if (!FoodCountInputCache.get(cacheId)) {
+                    return;
+                }
+                // todo: try/catch
                 await appendFoodCount({
                     org,
                     date,
                     reporter,
                     lbs,
-                    // todo: parse the note
-                    note: ''
+                    note
                 });
-                FoodCountInputCache.delete(cacheId);
-                messageReply.delete();
+
+                // we want to post to food-count, always, so folks know what's in the db
+                const countChannel = (await message.guild?.channels.cache.find(
+                    (channel) =>
+                        NmFoodCountService.isFoodCountChannelName(channel.name)
+                )) as TextChannel;
+
+                // todo: we want to use handlebars or some template engine and keep these texts in a markdown file
+                countChannel?.send(
+                    `*OK, posted to db:*
+${lbs} lbs ${note ? `(${note})` : ''} from ${org} on  ${date}.`
+                );
+                try {
+                    FoodCountInputCache.delete(cacheId);
+                    await messageReply.delete();
+                } catch (e) {
+                    console.log(e);
+                }
             },
             // we give them a certain amount of time to hit cancel
             TIME_UNTIL_UPDATE
@@ -153,11 +172,14 @@ export const FoodCountInputEvent = async (message: Message) => {
 
         // our success message
         const reply: MessageReplyOptions = {
-            content: `OK, we have ${lbs} lbs from ${org} on ${date}.`,
+            content: `OK, we got:
+${lbs} lbs  ${note ? `(${note})` : ''} from ${org} on ${date}.
+You have ${TIME_UNTIL_UPDATE / 1000} seconds to cancel this food count entry.
+This message will self-destruct in ${TIME_UNTIL_UPDATE / 1000} seconds.`,
             components: [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
-                        // todo: I guess we can cat the spreadsheet row to the custom id and delete it on cancel
+                        // we keep the cacheId on the custom id so we can delete it on cancel event
                         .setCustomId(`food-count-cancel--${cacheId}`)
                         .setLabel('delete')
                         .setStyle(ButtonStyle.Danger)
@@ -165,7 +187,7 @@ export const FoodCountInputEvent = async (message: Message) => {
             ]
         };
 
-        // get the message reply
+        // we need a reference to the message
         const messageReply = await message.reply(reply);
 
         // because we want to delete this message on cancel, or when the expiration passes
@@ -178,22 +200,6 @@ export const FoodCountInputEvent = async (message: Message) => {
         // get our reporter email address
         const reporter =
             (await NmPersonService.getEmailByDiscordId(author.id)) || '';
-        // after a set time, the cancel message disappears and the
-        // input goes to database
-
-        if (channelStatus === 'NIGHT_CHANNEL') {
-            // todo: do we want to post everything in food count?
-            const countChannel = (await message.guild?.channels.cache.find(
-                (channel) =>
-                    NmFoodCountService.isFoodCountChannelName(channel.name)
-            )) as TextChannel;
-            const countMessage = await countChannel?.send(
-                `We got ${lbs} lbs (${note}) from ${org} on  ${date}.`
-            );
-            FoodCountInputCache.update(cacheId, {
-                messageCountId: countMessage.id
-            });
-        }
     }
 
     // loop over errors and post to channel
@@ -215,22 +221,19 @@ export const FoodCountInputEvent = async (message: Message) => {
                 lbs
             });
         }
-        const r = await message.reply({
+        const responseMessage = await message.reply({
             content
         });
 
-        // we delete crabapple message after 10 seconds
-        // the idea is that we want to flash an error message then delete it.
+        //we delete crabapple message after 1 minute
+        //  todo: make this better
         setTimeout(() => {
             // ? we only delete their message if they are in food count channel??
             if ('COUNT_CHANNEL' === channelStatus) {
                 message.delete();
             }
             // always delete our own message
-            r.delete();
-        }, 10000);
-
-        // in this case we are done since we cannot Cache and invalid input
-        return;
+            responseMessage.delete();
+        }, TIME_UNTIL_UPDATE);
     }
 };
