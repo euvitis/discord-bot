@@ -1,6 +1,6 @@
 import { GoogleAuth } from 'google-auth-library';
 import { google, sheets_v4 } from 'googleapis';
-import { NmConfigService } from './nm-config.service';
+import { NmConfigService } from '../nm-service';
 
 // the alphabet indexed in array
 export const AlphaIndex = Array.from(Array(26)).map((e, i) => i + 65);
@@ -30,7 +30,10 @@ export class GoogleSpreadsheetsService {
         }
         return n;
     }
-    static async rangeGet(range: string, spreadsheetId: string) {
+    static async rangeGet<A extends string[][] = string[][]>(
+        range: string,
+        spreadsheetId: string
+    ): Promise<A> {
         validate(range, spreadsheetId);
         const [gspread] = await Gspread;
         const result = await gspread.spreadsheets.values.get({
@@ -38,7 +41,7 @@ export class GoogleSpreadsheetsService {
             range
         });
 
-        return result.data.values || [];
+        return (result.data.values || []) as A;
     }
 
     static async rowsDelete(

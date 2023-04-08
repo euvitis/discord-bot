@@ -6,14 +6,34 @@ import {
     ButtonStyle,
     TextChannel
 } from 'discord.js';
-import { appendFoodCount, NmFoodCountService } from '../service/index';
+import {
+    NmFoodCountDataService,
+    NmFoodCountInputService,
+    NmPersonService
+} from '../nm-service';
 import { v4 as uuidv4 } from 'uuid';
-import { NmPersonService, CacheService } from '../service/index';
+import { CacheService, MessageService } from '../service/index';
 import { Dbg } from '../service';
 const debug = Dbg('FoodCountInputEvent');
 
 // status for each cached input: does it get inserted unless cancel? or does it require a confirmation?
 type CacheStatusType = 'INSERT_UNLESS_CANCEL' | 'DELETE_UNLESS_CONFIRM';
+
+const MsgReply = MessageService.createMap({
+    FOODCOUNT_INSERT: {
+        lbs: '',
+        note: '',
+        org: '',
+        date: ''
+    },
+    FOODCOUNT_INPUT_OK: {
+        lbs: '',
+        note: '',
+        org: '',
+        date: '',
+        seconds: ''
+    }
+});
 
 // this is a cache for food-count input so that we can
 // give user a set period of time to cancel
@@ -61,7 +81,7 @@ export const FoodCountInputEvent = async (message: Message) => {
         date,
         parsedInputList,
         parsedInputErrorList
-    ] = await NmFoodCountService.getParsedChannelAndContent(
+    ] = await NmFoodCountInputService.getParsedChannelAndContent(
         channel.name,
         content
     );
@@ -130,7 +150,7 @@ export const FoodCountInputEvent = async (message: Message) => {
                     return;
                 }
                 // todo: try/catch
-                await appendFoodCount({
+                await NmFoodCountDataService.appendFoodCount({
                     org,
                     date,
                     reporter,
@@ -141,13 +161,21 @@ export const FoodCountInputEvent = async (message: Message) => {
                 // we want to post to food-count, always, so folks know what's in the db
                 const countChannel = (await message.guild?.channels.cache.find(
                     (channel) =>
-                        NmFoodCountService.isFoodCountChannelName(channel.name)
+                        NmFoodCountInputService.isFoodCountChannelName(
+                            channel.name
+                        )
                 )) as TextChannel;
 
                 // todo: we want to use handlebars or some template engine and keep these texts in a markdown file
                 countChannel?.send(
-                    `*OK, posted to db:*
-${lbs} lbs ${note ? `(${note})` : ''} from ${org} on  ${date}.`
+                    MsgReply.FOODCOUNT_INSERT({
+                        lbs: lbs + '',
+                        note,
+                        org,
+                        date
+                    })
+                    //                     `*OK, posted to db:*
+                    // ${lbs} lbs ${note ? `(${note})` : ''} from ${org} on  ${date}.`
                 );
                 try {
                     FoodCountInputCache.delete(cacheId);
@@ -172,10 +200,13 @@ ${lbs} lbs ${note ? `(${note})` : ''} from ${org} on  ${date}.`
 
         // our success message
         const reply: MessageReplyOptions = {
-            content: `OK, we got:
-${lbs} lbs  ${note ? `(${note})` : ''} from ${org} on ${date}.
-You have ${TIME_UNTIL_UPDATE / 1000} seconds to cancel this food count entry.
-This message will self-destruct in ${TIME_UNTIL_UPDATE / 1000} seconds.`,
+            content: MsgReply.FOODCOUNT_INPUT_OK({
+                lbs: '',
+                note: '',
+                org: '',
+                date: '',
+                seconds: '' + TIME_UNTIL_UPDATE / 1000
+            }),
             components: [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
@@ -206,17 +237,17 @@ This message will self-destruct in ${TIME_UNTIL_UPDATE / 1000} seconds.`,
     for (const { status, lbs, org, orgFuzzy } of parsedInputErrorList) {
         let content = '';
         if (status === 'NO_LBS_OR_ORG') {
-            content = NmFoodCountService.getMessageErrorNoLbsOrOrg({
+            content = NmFoodCountInputService.getMessageErrorNoLbsOrOrg({
                 messageContent: message.content
             });
         }
         if (status === 'NO_LBS') {
-            content = NmFoodCountService.getMessageErrorNoLbs({
+            content = NmFoodCountInputService.getMessageErrorNoLbs({
                 org
             });
         }
         if (status === 'NO_ORG') {
-            content = NmFoodCountService.getMessageErrorNoOrg({
+            content = NmFoodCountInputService.getMessageErrorNoOrg({
                 orgFuzzy,
                 lbs
             });

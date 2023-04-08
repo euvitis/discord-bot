@@ -1,7 +1,7 @@
 import { DayNameType } from '../model/night-market.model';
-import { getOrgList } from './nm-org.service';
+import { NmOrgService } from './nm-org.service';
 import FuzzySearch from 'fuzzy-search';
-import { ParseContentService } from './parse-content.service';
+import { ParseContentService } from '../service';
 
 // what type of channel are we in?
 type FoodCountChannelStatusType =
@@ -74,7 +74,7 @@ const COUNT_CHANNEL_NAME = 'food-count',
         weekends: 'saturday'
     };
 
-export class NmFoodCountService {
+export class NmFoodCountInputService {
     /* dealing with  messages sent */
     // todo: we should standardize these messages in central database, with maybe template engine
     static getMessageErrorNoLbsOrOrg({
@@ -200,7 +200,7 @@ Example:
     }
 
     static getDateFromNightChannelName(channelName: string): string {
-        return NmFoodCountService.getDateStringFromDay(
+        return NmFoodCountInputService.getDateStringFromDay(
             NIGHT_CHANNEL_NAMES_MAP[channelName.toLowerCase()]
         );
     }
@@ -220,7 +220,7 @@ Example:
     static async getOrgListFromFuzzyString(
         orgFuzzy: string
     ): Promise<string[]> {
-        const orgList = (await getOrgList()).map((a) => ({
+        const orgList = (await NmOrgService.getOrgList()).map((a) => ({
             ...a,
             nameSearchable: a.nameAltList.join(' ') + ' ' + a.name
         }));
@@ -248,7 +248,7 @@ Example:
         let [date, contentLessDate] = this.parseDateFromContent(content);
 
         // TODO: parse the date and lines
-        //const orgList = NmFoodCountService.getOrgListFromFuzzyString();
+        //const orgList = NmFoodCountInputService.getOrgListFromFuzzyString();
         const inputList = contentLessDate
             .split('\n')
             .map((a) => a.trim())
@@ -301,7 +301,7 @@ Example:
 
     static getLbsAndString(content: string): [number, string] {
         const contentList = content.split(' ').filter((a: string) => a.trim());
-        let lbsCount = NmFoodCountService.getNumberFromStringStart(
+        let lbsCount = NmFoodCountInputService.getNumberFromStringStart(
             contentList[0]
         );
         // in this case the number was first
@@ -319,7 +319,7 @@ Example:
         }
 
         // in this case the number was last
-        lbsCount = NmFoodCountService.getNumberFromStringStart(
+        lbsCount = NmFoodCountInputService.getNumberFromStringStart(
             contentList[contentList.length - 1]
         );
         if (lbsCount) {
@@ -329,7 +329,7 @@ Example:
         }
 
         // in this case the number was second to last, and it needs to be followed by a lbs or pounds
-        lbsCount = NmFoodCountService.getNumberFromStringStart(
+        lbsCount = NmFoodCountInputService.getNumberFromStringStart(
             contentList[contentList.length - 2]
         );
         if (lbsCount) {

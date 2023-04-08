@@ -1,4 +1,4 @@
-import { GoogleSecretService } from './google-secrets.service';
+import { GoogleSecretService } from '../service';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 

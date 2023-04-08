@@ -1,7 +1,6 @@
 import { describe, expect, test, jest } from '@jest/globals';
 
-import { NmPersonService } from '../src/service/nm-person.service';
-import { Config } from '../src/config';
+import { NmPersonService } from '../src/nm-service';
 
 jest.setTimeout(20000);
 

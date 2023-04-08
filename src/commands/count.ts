@@ -3,7 +3,7 @@ import {
     ChatInputCommandInteraction,
     SlashCommandBuilder
 } from 'discord.js';
-import { appendFoodCount } from '../service/nm-inventory.service';
+import { appendFoodCount } from '../service/nm-food-count-data.service';
 import { getOrgNameList } from '../service/nm-org.service';
 
 module.exports = {
