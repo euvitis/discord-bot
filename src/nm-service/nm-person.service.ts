@@ -18,9 +18,46 @@ const ColumnMap = {
     // exclude the header when we want only data
     DATA_OFFSET = 2,
     // the name of the core sheet where all people are
-    CORE_PERSON_SHEET = 'person';
+    CORE_PERSON_SHEET = 'person',
+    PERSON_LIST_CACHE_EXPIRY = 1000 * 60 * 60; // one hour until cache refresh
 
+// we use a cache so we do not have to go to Google spreadsheet everytime we want the people
+let personListCache: PersonModel[] = [],
+    personListCacheLastUpdate = Date.now();
 export class NmPersonService {
+    static async getPersonList(): Promise<PersonModel[]> {
+        if (
+            !personListCache.length ||
+            Date.now() - PERSON_LIST_CACHE_EXPIRY > personListCacheLastUpdate
+        ) {
+            personListCacheLastUpdate = Date.now();
+            // TODO: we probably only want the active people in the cache
+            personListCache = (await this.getAllDataWithoutHeader()).map(
+                this.createFromData
+            );
+        }
+        return personListCache;
+    }
+
+    static createFromData(a: string[]): PersonModel {
+        // todo: make a better mapping, maybe map header to column, make it easier to edit spreadhseet without fuckup script?
+        return {
+            status: a[0].trim(),
+            name: a[1].trim(),
+            email: a[2].trim(),
+            phone: a[3].trim(),
+            location: a[4].trim(),
+            bike: a[5].trim(),
+            bikeCart: a[6].trim(),
+            bikeCartAtNight: a[7].trim(),
+            skills: a[8].trim(),
+            bio: a[9].trim(),
+            pronouns: a[10].trim(),
+            interest: a[11].trim(),
+            reference: a[12].trim(),
+            discordId: a[13].trim()
+        };
+    }
     static async getCleanNameList() {
         return this.getNameList().then((a) => a.filter((b) => b.trim()));
     }
@@ -41,6 +78,15 @@ export class NmPersonService {
             this.getColumnDataRangeName('EMAIL'),
             GSPREAD_CORE_ID
         ).then((a) => a.map((b) => b[0]));
+    }
+
+    static async getAllDataWithoutHeader(): Promise<string[][]> {
+        return (
+            await GoogleSpreadsheetsService.rangeGet(
+                this.getFullPersonDataRangeName(),
+                GSPREAD_CORE_ID
+            )
+        ).filter((_a, i) => !!i);
     }
 
     static async getAllData(): Promise<string[][]> {
