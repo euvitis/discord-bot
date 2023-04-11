@@ -3,12 +3,12 @@ import {
     ChatInputCommandInteraction,
     SlashCommandBuilder
 } from 'discord.js';
-import { appendFoodCount } from '../service/nm-food-count-data.service';
-import { getOrgNameList } from '../service/nm-org.service';
+import { NmFoodCountDataService } from '../nm-service/nm-food-count-data.service';
+import { NmOrgService } from '../nm-service/nm-org.service';
 
 module.exports = {
     async get_data() {
-        const orgs = await getOrgNameList();
+        const orgs = await NmOrgService.getOrgList();
 
         return new SlashCommandBuilder()
             .setName('count')
@@ -18,7 +18,7 @@ module.exports = {
                     .setName('org')
                     .setDescription('Who gave us this food?')
                     .setRequired(true)
-                    .addChoices(...orgs.map((name) => ({ name, value: name })))
+                    .addChoices(...orgs.map(({ name }) => ({ name, value: name })))
             )
             .addNumberOption((option) =>
                 option
@@ -43,12 +43,10 @@ module.exports = {
         const date = new Date();
 
         // update the spread sheet
-        appendFoodCount({
+        NmFoodCountDataService.appendFoodCount({
             org,
             lbs: amu,
-            date: `${
-                date.getMonth() + 1
-            }/${date.getDate()}/${date.getFullYear()}`,
+            date: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
             // todo: get this from data
             reporter: 'christianco@gmail.com',
             note: ''

@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NmPersonService = void 0;
 const nm_const_1 = require("../nm-const");
-const google_spreadsheets_service_1 = require("./google-spreadsheets.service");
+const service_1 = require("../service");
 const config_1 = require("../config");
 const { GSPREAD_CORE_ID } = (0, config_1.Config)();
 // makes it easier to find and change where data is in sheet columns
@@ -25,8 +25,40 @@ const ColumnMap = {
 // exclude the header when we want only data
 DATA_OFFSET = 2, 
 // the name of the core sheet where all people are
-CORE_PERSON_SHEET = 'person';
+CORE_PERSON_SHEET = 'person', PERSON_LIST_CACHE_EXPIRY = 1000 * 60 * 60; // one hour until cache refresh
+// we use a cache so we do not have to go to Google spreadsheet everytime we want the people
+let personListCache = [], personListCacheLastUpdate = Date.now();
 class NmPersonService {
+    static getPersonList() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!personListCache.length ||
+                Date.now() - PERSON_LIST_CACHE_EXPIRY > personListCacheLastUpdate) {
+                personListCacheLastUpdate = Date.now();
+                // TODO: we probably only want the active people in the cache
+                personListCache = (yield this.getAllDataWithoutHeader()).map(this.createFromData);
+            }
+            return personListCache;
+        });
+    }
+    static createFromData(a) {
+        // todo: make a better mapping, maybe map header to column, make it easier to edit spreadhseet without fuckup script?
+        return {
+            status: a[0].trim(),
+            name: a[1].trim(),
+            email: a[2].trim(),
+            phone: a[3].trim(),
+            location: a[4].trim(),
+            bike: a[5].trim(),
+            bikeCart: a[6].trim(),
+            bikeCartAtNight: a[7].trim(),
+            skills: a[8].trim(),
+            bio: a[9].trim(),
+            pronouns: a[10].trim(),
+            interest: a[11].trim(),
+            reference: a[12].trim(),
+            discordId: a[13].trim()
+        };
+    }
     static getCleanNameList() {
         return __awaiter(this, void 0, void 0, function* () {
             return this.getNameList().then((a) => a.filter((b) => b.trim()));
@@ -39,17 +71,22 @@ class NmPersonService {
     }
     static getNameList() {
         return __awaiter(this, void 0, void 0, function* () {
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('NAME'), GSPREAD_CORE_ID).then((a) => a[0]);
+            return service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('NAME'), GSPREAD_CORE_ID).then((a) => a[0]);
         });
     }
     static getEmailList() {
         return __awaiter(this, void 0, void 0, function* () {
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('EMAIL'), GSPREAD_CORE_ID).then((a) => a.map((b) => b[0]));
+            return service_1.GoogleSpreadsheetsService.rangeGet(this.getColumnDataRangeName('EMAIL'), GSPREAD_CORE_ID).then((a) => a.map((b) => b[0]));
+        });
+    }
+    static getAllDataWithoutHeader() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return (yield service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID)).filter((_a, i) => !!i);
         });
     }
     static getAllData() {
         return __awaiter(this, void 0, void 0, function* () {
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID);
+            return service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID);
         });
     }
     static getPersonRangeByDiscorIdOrEmail(idOrEmail) {
@@ -90,7 +127,7 @@ class NmPersonService {
             idOrEmail = idOrEmail.toLowerCase().trim();
             const emailIndex = this.getColumnIndexByName('EMAIL');
             const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
-            const a = yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID)
+            const a = yield service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID)
                 .then((a) => a.filter((a) => {
                 return (idOrEmail === a[emailIndex] ||
                     idOrEmail === a[discordIdIndex]);
@@ -104,10 +141,10 @@ class NmPersonService {
             idOrEmail = idOrEmail.toLowerCase().trim();
             const emailIndex = this.getColumnIndexByName('EMAIL');
             const discordIdIndex = this.getColumnIndexByName('DISCORD_ID');
-            return google_spreadsheets_service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID).then((a) => a.findIndex((a) => {
-                var _a, _b;
-                return (idOrEmail === ((_a = a[emailIndex]) === null || _a === void 0 ? void 0 : _a.trim()) ||
-                    idOrEmail === ((_b = a[discordIdIndex]) === null || _b === void 0 ? void 0 : _b.trim()));
+            return service_1.GoogleSpreadsheetsService.rangeGet(this.getFullPersonDataRangeName(), GSPREAD_CORE_ID).then((a) => a.findIndex((a) => {
+                var _b, _c;
+                return (idOrEmail === ((_b = a[emailIndex]) === null || _b === void 0 ? void 0 : _b.trim()) ||
+                    idOrEmail === ((_c = a[discordIdIndex]) === null || _c === void 0 ? void 0 : _c.trim()));
             }) + 1);
         });
     }
@@ -124,13 +161,13 @@ class NmPersonService {
             }
             const range = this.getColumnRangeName('STATUS', rowIndex);
             // update cell for active at row and column index (add method to GSpreadService)
-            yield google_spreadsheets_service_1.GoogleSpreadsheetsService.rowsWrite([[activeState]], range, GSPREAD_CORE_ID);
+            yield service_1.GoogleSpreadsheetsService.rowsWrite([[activeState]], range, GSPREAD_CORE_ID);
             return range;
         });
     }
     // gets the row index number from named column
     static getColumnIndexByName(columnName) {
-        return google_spreadsheets_service_1.GoogleSpreadsheetsService.columnIndexFromLetter(ColumnMap[columnName]);
+        return service_1.GoogleSpreadsheetsService.columnIndexFromLetter(ColumnMap[columnName]);
     }
     // returns the full range for all the person data
     static getFullPersonDataRangeName() {

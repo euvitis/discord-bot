@@ -13,9 +13,7 @@ interface Config {
     GSPREAD_FOODCOUNT_ID: string;
 }
 
-const EnvConfig: {
-    [k in EnvType]: Config;
-} = {
+const EnvConfig: { [k in EnvType]: Config } = {
     dev: {
         GSPREAD_CORE_ID: '1y27iAsVWOG_l3yfLEvVIyKqKlL9i571pZN6wegCK_98',
         GSPREAD_FOODCOUNT_ID: '18TujYCUGf4Lko-8VVJtyagmk2SNEouxTTde5opG1eoo'
@@ -30,9 +28,13 @@ const EnvConfig: {
         GSPREAD_FOODCOUNT_ID: '1uHQ6oL84fxlu3bXYxPIU7s1-T2RX0uWzCNC1Hxs8sMM'
     }
 };
+
 if (!EnvConfig[process.env.NODE_ENV as EnvType]) {
     console.log('No NODE_ENV set, default to test');
 }
+
+export const ENV = process.env.NODE_ENV as EnvType || 'test';
+
 export const Config = (
     // allow env to be passed so we can test config in any env
     env = (process.env.NODE_ENV || 'test') as EnvType

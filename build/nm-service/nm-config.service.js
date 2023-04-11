@@ -10,28 +10,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NmConfigService = void 0;
-const google_secrets_service_1 = require("./google-secrets.service");
+const google_secrets_service_1 = require("../service/google-secrets.service");
 const path_1 = require("path");
 const fs_1 = require("fs");
-const DISCORD_CONFIG_NAME = 'config-discord-api', GOOGLE_KEYS_NAME = 'config-google-api';
+const DISCORD_CONFIG_NAME = 'config-discord-api';
+const GOOGLE_KEYS_NAME = 'config-google-api';
 class NmConfigService {
     static getParsed() {
         return __awaiter(this, void 0, void 0, function* () {
-            let googleSpreadsheetsKeys, discordConfig;
             if (process.env.NODE_ENV === 'prod') {
-                googleSpreadsheetsKeys =
-                    yield google_secrets_service_1.GoogleSecretService.getParsed(`nm-${GOOGLE_KEYS_NAME}`);
-                discordConfig =
-                    yield google_secrets_service_1.GoogleSecretService.getParsed(`nm-${DISCORD_CONFIG_NAME}`);
+                return {
+                    googleSpreadsheetsKeys: yield google_secrets_service_1.GoogleSecretService.getParsed(`nm-${GOOGLE_KEYS_NAME}`),
+                    discordConfig: yield google_secrets_service_1.GoogleSecretService.getParsed(`nm-${DISCORD_CONFIG_NAME}`)
+                };
             }
             else {
-                googleSpreadsheetsKeys = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, `../../${GOOGLE_KEYS_NAME}.keys.json`), 'utf-8'));
-                discordConfig = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, `../../${DISCORD_CONFIG_NAME}.keys.json`), 'utf-8'));
+                return {
+                    googleSpreadsheetsKeys: JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, `../../${GOOGLE_KEYS_NAME}.keys.json`), 'utf-8')),
+                    discordConfig: JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, `../../${DISCORD_CONFIG_NAME}.keys.json`), 'utf-8'))
+                };
             }
-            return {
-                googleSpreadsheetsKeys,
-                discordConfig
-            };
         });
     }
 }

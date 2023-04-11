@@ -16,7 +16,6 @@ exports.publishCommands = exports.loadCommands = void 0;
 const discord_js_1 = require("discord.js");
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
-const dotenv_1 = require("../dotenv");
 function loadCommands() {
     return __awaiter(this, void 0, void 0, function* () {
         const commands = new discord_js_1.Collection();
@@ -39,11 +38,11 @@ function loadCommands() {
 exports.loadCommands = loadCommands;
 function publishCommands(commands) {
     return __awaiter(this, void 0, void 0, function* () {
-        const rest = new discord_js_1.REST({ version: '10' }).setToken(dotenv_1.DISCORD_TOKEN);
-        yield rest.put(discord_js_1.Routes.applicationCommands(dotenv_1.DISCORD_CLIENT_ID), {
-            body: [...commands.values()].map(({ data }) => data.toJSON())
-        });
-        console.log(`Successfully reloaded (/) commands.`);
+        // const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
+        // await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
+        //     body: [...commands.values()].map(({ data }) => data.toJSON())
+        // });
+        // console.log(`Successfully reloaded (/) commands.`);
     });
 }
 exports.publishCommands = publishCommands;

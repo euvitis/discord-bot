@@ -8,7 +8,6 @@ import {
 } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DISCORD_TOKEN, DISCORD_CLIENT_ID } from '../dotenv';
 
 interface Command {
     data: SlashCommandBuilder;
@@ -40,11 +39,11 @@ export async function loadCommands() {
 }
 
 export async function publishCommands(commands: Collection<string, Command>) {
-    const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
+    // const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
-    await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
-        body: [...commands.values()].map(({ data }) => data.toJSON())
-    });
+    // await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
+    //     body: [...commands.values()].map(({ data }) => data.toJSON())
+    // });
 
-    console.log(`Successfully reloaded (/) commands.`);
+    // console.log(`Successfully reloaded (/) commands.`);
 }

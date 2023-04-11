@@ -12,12 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GoogleSpreadsheetsService = exports.Alphabet = exports.AlphaIndex = void 0;
 const google_auth_library_1 = require("google-auth-library");
 const googleapis_1 = require("googleapis");
-const nm_config_service_1 = require("./nm-config.service");
+const nm_service_1 = require("../nm-service");
 // the alphabet indexed in array
 exports.AlphaIndex = Array.from(Array(26)).map((e, i) => i + 65);
 // the alphabet in an array
 exports.Alphabet = exports.AlphaIndex.map((x) => String.fromCharCode(x).toUpperCase());
-const Gspread = nm_config_service_1.NmConfigService.getParsed().then((config) => {
+const Gspread = nm_service_1.NmConfigService.getParsed().then((config) => {
     const credentials = config.googleSpreadsheetsKeys;
     const auth = new google_auth_library_1.GoogleAuth({
         credentials,
@@ -41,7 +41,7 @@ class GoogleSpreadsheetsService {
                 spreadsheetId,
                 range
             });
-            return result.data.values || [];
+            return (result.data.values || []);
         });
     }
     static rowsDelete(startIndex, endIndex, sheetId, spreadsheetId) {

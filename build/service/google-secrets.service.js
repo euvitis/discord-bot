@@ -18,10 +18,8 @@ class GoogleSecretService {
         return __awaiter(this, void 0, void 0, function* () {
             //name: `projects/PROJECT_NUMBER/secrets/SECRET_NAME/versions/latest`
             const name = `projects/eco501c3/secrets/${secretName}/versions/latest`;
-            const [version] = yield secretmanagerClient.accessSecretVersion({
-                name
-            });
-            return JSON.parse(((_b = (_a = version.payload) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b.toString('utf8')) || '{}');
+            const [version] = yield secretmanagerClient.accessSecretVersion({ name });
+            return JSON.parse(((_b = (_a = version.payload) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b.toString()) || '{}');
         });
     }
 }

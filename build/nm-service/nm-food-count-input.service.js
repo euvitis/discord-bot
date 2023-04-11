@@ -12,10 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NmFoodCountService = void 0;
+exports.NmFoodCountInputService = void 0;
 const nm_org_service_1 = require("./nm-org.service");
 const fuzzy_search_1 = __importDefault(require("fuzzy-search"));
-const parse_content_service_1 = require("./parse-content.service");
+const service_1 = require("../service");
 // we only allow food count in one channel
 const COUNT_CHANNEL_NAME = 'food-count', 
 // OR in a "night channel", which always corresponds to a day
@@ -32,7 +32,7 @@ NIGHT_CHANNEL_NAMES_MAP = {
     // ? i guess saturday will work for weekends for now?
     weekends: 'saturday'
 };
-class NmFoodCountService {
+class NmFoodCountInputService {
     /* dealing with  messages sent */
     // todo: we should standardize these messages in central database, with maybe template engine
     static getMessageErrorNoLbsOrOrg({ messageContent }) {
@@ -75,7 +75,7 @@ Example:
     static getParsedChannelAndContent(channelName, content) {
         return __awaiter(this, void 0, void 0, function* () {
             const channelStatus = this.getChannelStatus(channelName);
-            let inputStatus = 'INVALID', dateStatus, date = parse_content_service_1.ParseContentService.dateFormat(new Date());
+            let inputStatus = 'INVALID', dateStatus, date = service_1.ParseContentService.dateFormat(new Date());
             if ('INVALID_CHANNEL' === channelStatus) {
                 inputStatus = 'INVALID';
                 // in this case we don't want to process anything, just return it
@@ -117,7 +117,7 @@ Example:
         });
     }
     static getDateFromNightChannelName(channelName) {
-        return NmFoodCountService.getDateStringFromDay(NIGHT_CHANNEL_NAMES_MAP[channelName.toLowerCase()]);
+        return NmFoodCountInputService.getDateStringFromDay(NIGHT_CHANNEL_NAMES_MAP[channelName.toLowerCase()]);
     }
     static getOrgAndNodeFromString(s) {
         var _a, _b;
@@ -129,7 +129,7 @@ Example:
     }
     static getOrgListFromFuzzyString(orgFuzzy) {
         return __awaiter(this, void 0, void 0, function* () {
-            const orgList = (yield (0, nm_org_service_1.getOrgList)()).map((a) => (Object.assign(Object.assign({}, a), { nameSearchable: a.nameAltList.join(' ') + ' ' + a.name })));
+            const orgList = (yield nm_org_service_1.NmOrgService.getOrgList()).map((a) => (Object.assign(Object.assign({}, a), { nameSearchable: a.nameAltList.join(' ') + ' ' + a.name })));
             const searcher = new fuzzy_search_1.default(orgList, ['nameSearchable'], {
                 caseSensitive: false,
                 sort: true
@@ -146,7 +146,7 @@ Example:
         return __awaiter(this, void 0, void 0, function* () {
             let [date, contentLessDate] = this.parseDateFromContent(content);
             // TODO: parse the date and lines
-            //const orgList = NmFoodCountService.getOrgListFromFuzzyString();
+            //const orgList = NmFoodCountInputService.getOrgListFromFuzzyString();
             const inputList = contentLessDate
                 .split('\n')
                 .map((a) => a.trim())
@@ -193,7 +193,7 @@ Example:
     static getLbsAndString(content) {
         var _a, _b;
         const contentList = content.split(' ').filter((a) => a.trim());
-        let lbsCount = NmFoodCountService.getNumberFromStringStart(contentList[0]);
+        let lbsCount = NmFoodCountInputService.getNumberFromStringStart(contentList[0]);
         // in this case the number was first
         if (lbsCount) {
             // get rid of the number
@@ -206,14 +206,14 @@ Example:
             return [lbsCount, contentList.join(' ')];
         }
         // in this case the number was last
-        lbsCount = NmFoodCountService.getNumberFromStringStart(contentList[contentList.length - 1]);
+        lbsCount = NmFoodCountInputService.getNumberFromStringStart(contentList[contentList.length - 1]);
         if (lbsCount) {
             // get rid of the number
             contentList.pop();
             return [lbsCount, contentList.join(' ')];
         }
         // in this case the number was second to last, and it needs to be followed by a lbs or pounds
-        lbsCount = NmFoodCountService.getNumberFromStringStart(contentList[contentList.length - 2]);
+        lbsCount = NmFoodCountInputService.getNumberFromStringStart(contentList[contentList.length - 2]);
         if (lbsCount) {
             if (contentList[contentList.length - 1].toLowerCase() === 'lbs' ||
                 contentList[contentList.length - 1].toLowerCase() === 'pounds') {
@@ -259,7 +259,7 @@ Example:
             // count backwards until we have the right day
             d.setDate(d.getDate() - 1);
         }
-        return parse_content_service_1.ParseContentService.dateFormat(d);
+        return service_1.ParseContentService.dateFormat(d);
     }
     // simply parse for a date that looks like MM/DD or MM/DD/YYYY
     // todo: i think this sucks. there must be an easier way to do this, like just ask them for the date in the confirm?
@@ -309,4 +309,4 @@ Example:
         ];
     }
 }
-exports.NmFoodCountService = NmFoodCountService;
+exports.NmFoodCountInputService = NmFoodCountInputService;

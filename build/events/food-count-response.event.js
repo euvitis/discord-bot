@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FoodCountResponseEvent = void 0;
 const food_count_input_event_1 = require("./food-count-input.event");
+const nm_service_1 = require("../nm-service");
 const service_1 = require("../service");
 const debug = (0, service_1.Dbg)('FoodCountCancelEvent');
 /**
@@ -78,7 +79,7 @@ const FoodCountResponseEvent = (interaction) => __awaiter(void 0, void 0, void 0
         // delete any posting in the food count that came from the night channels
         if (cache.messageCountId) {
             debug('found a count channel user message');
-            const countChannel = (yield ((_b = interaction.guild) === null || _b === void 0 ? void 0 : _b.channels.cache.find((channel) => service_1.NmFoodCountService.isFoodCountChannelName(channel.name))));
+            const countChannel = (yield ((_b = interaction.guild) === null || _b === void 0 ? void 0 : _b.channels.cache.find((channel) => nm_service_1.NmFoodCountInputService.isFoodCountChannelName(channel.name))));
             (_c = countChannel.messages) === null || _c === void 0 ? void 0 : _c.fetch(cache.messageCountId).then((msg) => __awaiter(void 0, void 0, void 0, function* () {
                 try {
                     yield msg.delete();

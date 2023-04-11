@@ -1,7 +1,5 @@
 import { GoogleSpreadsheetsService } from '../service';
-
 import { Config } from '../config';
-
 import { ActiveStateType } from '../model/night-market.model';
 
 /**
