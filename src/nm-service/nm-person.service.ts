@@ -9,17 +9,17 @@ type ColumnMapKeyType = keyof typeof ColumnMap;
 const { GSPREAD_CORE_ID } = Config();
 // makes it easier to find and change where data is in sheet columns
 const ColumnMap = {
-        EMAIL: 'C',
-        NAME: 'B',
-        STATUS: 'A',
-        DISCORD_ID: 'N',
-        LAST_COLUMN: 'N'
-    },
-    // exclude the header when we want only data
-    DATA_OFFSET = 2,
-    // the name of the core sheet where all people are
-    CORE_PERSON_SHEET = 'person',
-    PERSON_LIST_CACHE_EXPIRY = 1000 * 60 * 60; // one hour until cache refresh
+    EMAIL: 'C',
+    NAME: 'B',
+    STATUS: 'A',
+    DISCORD_ID: 'N',
+    LAST_COLUMN: 'N'
+};
+// exclude the header when we want only data
+const DATA_OFFSET = 2;
+// the name of the core sheet where all people are
+const CORE_PERSON_SHEET = 'person';
+const PERSON_LIST_CACHE_EXPIRY = 1000 * 60 * 60; // one hour until cache refresh
 
 // we use a cache so we do not have to go to Google spreadsheet everytime we want the people
 let personListCache: PersonModel[] = [],
@@ -245,9 +245,8 @@ export class NmPersonService {
         // optionally, get columns that follow
         endCol?: string
     ): string {
-        return `${CORE_PERSON_SHEET}!${ColumnMap[columnName]}${
-            index ? index : ''
-        }${endCol ? `:${endCol}` : ''}`;
+        return `${CORE_PERSON_SHEET}!${ColumnMap[columnName]}${index ? index : ''
+            }${endCol ? `:${endCol}` : ''}`;
     }
 
     static getCellRangeName(
@@ -258,8 +257,7 @@ export class NmPersonService {
         if (!index) {
             throw new Error('must have an index to get a row range name');
         }
-        return `${CORE_PERSON_SHEET}!${ColumnMap[columnName]}${
-            index ? index : ''
-        }`;
+        return `${CORE_PERSON_SHEET}!${ColumnMap[columnName]}${index ? index : ''
+            }`;
     }
 }
