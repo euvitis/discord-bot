@@ -11,16 +11,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FoodCountInputEvent = exports.TIME_UNTIL_UPDATE = exports.FoodCountInputCache = void 0;
 const discord_js_1 = require("discord.js");
-const index_1 = require("../service/index");
+const nm_service_1 = require("../nm-service");
 const uuid_1 = require("uuid");
-const index_2 = require("../service/index");
+const index_1 = require("../service/index");
 const service_1 = require("../service");
 const debug = (0, service_1.Dbg)('FoodCountInputEvent');
+const MsgReply = index_1.MessageService.createMap({
+    FOODCOUNT_INSERT: {
+        lbs: '',
+        note: '',
+        org: '',
+        date: ''
+    },
+    FOODCOUNT_INPUT_OK: {
+        lbs: '',
+        note: '',
+        org: '',
+        date: '',
+        seconds: ''
+    }
+});
 // this is a cache for food-count input so that we can
 // give user a set period of time to cancel
 // if the user cancels, this cache is deleted
 // if not, it is inserted into the spreadsheet
-exports.FoodCountInputCache = (0, index_2.CacheService)('food-count'), 
+exports.FoodCountInputCache = (0, index_1.CacheService)('food-count'), 
 // after a set period of time, the input is inserted. this is that time:
 exports.TIME_UNTIL_UPDATE = 60 * 1000; // one minute in milliseconds
 /**
@@ -44,7 +59,7 @@ const FoodCountInputEvent = (message) => __awaiter(void 0, void 0, void 0, funct
     /* STAGE 2: figure out our input status */
     const [channelStatus, inputStatus, 
     // did we get the date from the content, from the channel name, or just today by default?
-    dateStatus, date, parsedInputList, parsedInputErrorList] = yield index_1.NmFoodCountService.getParsedChannelAndContent(channel.name, content);
+    dateStatus, date, parsedInputList, parsedInputErrorList] = yield nm_service_1.NmFoodCountInputService.getParsedChannelAndContent(channel.name, content);
     console.log(channelStatus, inputStatus, 
     // did we get the date from the content, from the channel name, or just today by default?
     dateStatus, date, parsedInputList, parsedInputErrorList);
@@ -96,7 +111,7 @@ const FoodCountInputEvent = (message) => __awaiter(void 0, void 0, void 0, funct
                 return;
             }
             // todo: try/catch
-            yield (0, index_1.appendFoodCount)({
+            yield nm_service_1.NmFoodCountDataService.appendFoodCount({
                 org,
                 date,
                 reporter,
@@ -104,10 +119,17 @@ const FoodCountInputEvent = (message) => __awaiter(void 0, void 0, void 0, funct
                 note
             });
             // we want to post to food-count, always, so folks know what's in the db
-            const countChannel = (yield ((_a = message.guild) === null || _a === void 0 ? void 0 : _a.channels.cache.find((channel) => index_1.NmFoodCountService.isFoodCountChannelName(channel.name))));
+            const countChannel = (yield ((_a = message.guild) === null || _a === void 0 ? void 0 : _a.channels.cache.find((channel) => nm_service_1.NmFoodCountInputService.isFoodCountChannelName(channel.name))));
             // todo: we want to use handlebars or some template engine and keep these texts in a markdown file
-            countChannel === null || countChannel === void 0 ? void 0 : countChannel.send(`*OK, posted to db:*
-${lbs} lbs ${note ? `(${note})` : ''} from ${org} on  ${date}.`);
+            countChannel === null || countChannel === void 0 ? void 0 : countChannel.send(MsgReply.FOODCOUNT_INSERT({
+                lbs: lbs + '',
+                note,
+                org,
+                date
+            })
+            //                     `*OK, posted to db:*
+            // ${lbs} lbs ${note ? `(${note})` : ''} from ${org} on  ${date}.`
+            );
             try {
                 exports.FoodCountInputCache.delete(cacheId);
                 yield messageReply.delete();
@@ -129,10 +151,13 @@ ${lbs} lbs ${note ? `(${note})` : ''} from ${org} on  ${date}.`);
         });
         // our success message
         const reply = {
-            content: `OK, we got:
-${lbs} lbs  ${note ? `(${note})` : ''} from ${org} on ${date}.
-You have ${exports.TIME_UNTIL_UPDATE / 1000} seconds to cancel this food count entry.
-This message will self-destruct in ${exports.TIME_UNTIL_UPDATE / 1000} seconds.`,
+            content: MsgReply.FOODCOUNT_INPUT_OK({
+                lbs: '',
+                note: '',
+                org: '',
+                date: '',
+                seconds: '' + exports.TIME_UNTIL_UPDATE / 1000
+            }),
             components: [
                 new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                     // we keep the cacheId on the custom id so we can delete it on cancel event
@@ -149,23 +174,23 @@ This message will self-destruct in ${exports.TIME_UNTIL_UPDATE / 1000} seconds.`
             messageResponseId: messageReply.id
         });
         // get our reporter email address
-        const reporter = (yield index_2.NmPersonService.getEmailByDiscordId(author.id)) || '';
+        const reporter = (yield nm_service_1.NmPersonService.getEmailByDiscordId(author.id)) || '';
     }
     // loop over errors and post to channel
     for (const { status, lbs, org, orgFuzzy } of parsedInputErrorList) {
         let content = '';
         if (status === 'NO_LBS_OR_ORG') {
-            content = index_1.NmFoodCountService.getMessageErrorNoLbsOrOrg({
+            content = nm_service_1.NmFoodCountInputService.getMessageErrorNoLbsOrOrg({
                 messageContent: message.content
             });
         }
         if (status === 'NO_LBS') {
-            content = index_1.NmFoodCountService.getMessageErrorNoLbs({
+            content = nm_service_1.NmFoodCountInputService.getMessageErrorNoLbs({
                 org
             });
         }
         if (status === 'NO_ORG') {
-            content = index_1.NmFoodCountService.getMessageErrorNoOrg({
+            content = nm_service_1.NmFoodCountInputService.getMessageErrorNoOrg({
                 orgFuzzy,
                 lbs
             });

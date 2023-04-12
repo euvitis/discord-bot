@@ -10,12 +10,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const nm_inventory_service_1 = require("../service/nm-inventory.service");
-const nm_org_service_1 = require("../service/nm-org.service");
+const nm_food_count_data_service_1 = require("../nm-service/nm-food-count-data.service");
+const nm_org_service_1 = require("../nm-service/nm-org.service");
 module.exports = {
     get_data() {
         return __awaiter(this, void 0, void 0, function* () {
-            const orgs = yield (0, nm_org_service_1.getOrgNameList)();
+            const orgs = yield nm_org_service_1.NmOrgService.getOrgList();
             return new discord_js_1.SlashCommandBuilder()
                 .setName('count')
                 .setDescription('Add to the food count')
@@ -23,7 +23,7 @@ module.exports = {
                 .setName('org')
                 .setDescription('Who gave us this food?')
                 .setRequired(true)
-                .addChoices(...orgs.map((name) => ({ name, value: name }))))
+                .addChoices(...orgs.map(({ name }) => ({ name, value: name }))))
                 .addNumberOption((option) => option
                 .setName('amount')
                 .setDescription('How many pounds of food?')
@@ -42,7 +42,7 @@ module.exports = {
             yield interaction.reply(`${org} gave us ${amu} lbs`);
             const date = new Date();
             // update the spread sheet
-            (0, nm_inventory_service_1.appendFoodCount)({
+            nm_food_count_data_service_1.NmFoodCountDataService.appendFoodCount({
                 org,
                 lbs: amu,
                 date: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,

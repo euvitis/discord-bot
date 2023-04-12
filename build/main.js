@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("./events");
 const discord_js_1 = require("discord.js");
-const service_1 = require("./service");
+const nm_service_1 = require("./nm-service");
 const config_1 = require("./config");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -39,7 +39,7 @@ function main() {
         // want a big switchboard and fire different stuff depending on
         // parameters
         client.on(discord_js_1.Events.InteractionCreate, events_1.FoodCountResponseEvent);
-        const { discordConfig: { appToken } } = yield service_1.NmConfigService.getParsed();
+        const { discordConfig: { appToken } } = yield nm_service_1.NmConfigService.getParsed();
         client.login(appToken);
     });
 }

@@ -1,7 +1,8 @@
 import { FoodCountInputEvent, FoodCountResponseEvent } from './events';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
-import { NmConfigService } from './service';
+import { NmConfigService } from './nm-service';
 import { Config } from './config';
+
 async function main() {
     const client = new Client({
         intents: [
