@@ -21,11 +21,12 @@ const ColumnMap = {
     STATUS: 'A',
     DISCORD_ID: 'N',
     LAST_COLUMN: 'N'
-}, 
+};
 // exclude the header when we want only data
-DATA_OFFSET = 2, 
+const DATA_OFFSET = 2;
 // the name of the core sheet where all people are
-CORE_PERSON_SHEET = 'person', PERSON_LIST_CACHE_EXPIRY = 1000 * 60 * 60; // one hour until cache refresh
+const CORE_PERSON_SHEET = 'person';
+const PERSON_LIST_CACHE_EXPIRY = 1000 * 60 * 60; // one hour until cache refresh
 // we use a cache so we do not have to go to Google spreadsheet everytime we want the people
 let personListCache = [], personListCacheLastUpdate = Date.now();
 class NmPersonService {
