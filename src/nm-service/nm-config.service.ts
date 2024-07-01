@@ -1,3 +1,5 @@
+// export interface NmConfigModel
+
 import { GoogleSecretService } from '../service/google-secrets.service';
 import { join } from 'path';
 import { readFileSync } from 'fs';

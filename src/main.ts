@@ -1,9 +1,15 @@
+// CRABAPPLE: a discord bot for night market related tasks such as
+// - counting food donations in poundage
+
+// why is this file in typescript?
+
 import { FoodCountInputEvent, FoodCountResponseEvent } from './events';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { NmConfigService } from './nm-service';
 import { Config } from './config';
 
 async function main() {
+    // initialize our bot that can enter guilds & send/read messages
     const client = new Client({
         intents: [
             GatewayIntentBits.Guilds,
@@ -11,31 +17,30 @@ async function main() {
             GatewayIntentBits.MessageContent
         ]
     });
-    // todo: do we want this on every connection?
-    // const commands = await loadCommands();
-    // client.on(Events.InteractionCreate, async (c) => {
-    //     console.log(c);
-    //     console.log(`Hi!`);
-    // });
+
     client.once(Events.ClientReady, async (c) => {
         console.log(`Ready! Logged in as ${c.user.tag}`);
     });
-    // todo: this will file on every message sent. we probably
+
+    // where are our commands loaded?
+
+    // todo: {
+    // this will file on every message sent. we probably
     // want a big switchboard and fire different stuff depending on
-    // parameters
+    // parameters/events
     client.on(Events.MessageCreate, FoodCountInputEvent);
-
-    // todo: this will file on every interaction sent. we probably
-    // want a big switchboard and fire different stuff depending on
-    // parameters
     client.on(Events.InteractionCreate, FoodCountResponseEvent);
+    // }
 
+    // why do we need the appToken to be waited for?
+    // what needs to be parsed?
     const {
         discordConfig: { appToken }
     } = await NmConfigService.getParsed();
     client.login(appToken);
 }
 
+// what is this information helpful for?
 console.log(new Date());
 console.log(process.env.NODE_ENV);
 console.log(Config());

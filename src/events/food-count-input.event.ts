@@ -1,3 +1,6 @@
+// export const FoodCountInputCache
+// export const FoodCountInputEvent
+
 import {
     ActionRowBuilder,
     Message,
@@ -11,6 +14,7 @@ import {
     NmFoodCountInputService,
     NmPersonService
 } from '../nm-service';
+// uuid: 128-bit uniquely universal id, randomly/pseudorandomly generated
 import { v4 as uuidv4 } from 'uuid';
 import { CacheService, MessageService } from '../service/index';
 import { Dbg } from '../service';

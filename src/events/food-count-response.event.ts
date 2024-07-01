@@ -1,3 +1,6 @@
+// follows food count input event?
+// export const FoodCountResponseEvent
+
 import {
     Message,
     TextChannel,
@@ -17,7 +20,9 @@ const debug = Dbg('FoodCountCancelEvent');
  */
 export const FoodCountResponseEvent = async (interaction: Interaction) => {
     // discord event listener does not like ButtonInteraction, but
-    // it makes like easier below
+    // it makes life easier below
+      // what does "[it] does not like [that]" mean?
+      // what does "it makes life easier" mean?
     interaction = interaction as ButtonInteraction;
     // we set the customId of the button
     const { customId } = interaction;
@@ -100,4 +105,6 @@ export const FoodCountResponseEvent = async (interaction: Interaction) => {
         // delete the cache
         FoodCountInputCache.delete(idCache);
     }
+
+    // must return void 0 for use of Client.on(...eventHandler)
 };

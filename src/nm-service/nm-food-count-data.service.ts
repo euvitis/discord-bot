@@ -1,3 +1,8 @@
+// export const GSPREAD_CORE_ACTIVE_STATE_LIST
+// export const GSPREAD_FOODCOUNT_SHEET_PREFIX
+// export const GSPREAD_SHEET_FOODCOUNT_HEADERS
+// export class NmFoodCountDataService
+
 import { GoogleSpreadsheetsService } from '../service';
 import { Config } from '../config';
 import { ActiveStateType } from '../model/night-market.model';

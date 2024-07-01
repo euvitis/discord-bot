@@ -1,3 +1,7 @@
+// export type DayNameType
+// export type ActiveStateType
+// export interface PersonModel
+
 export type DayNameType =
     | 'sunday'
     | 'monday'

@@ -1,3 +1,6 @@
+// export interface FoodCountParsedInputModel
+// export class NmFoodCountInputService
+
 import { DayNameType } from '../model/night-market.model';
 import { NmOrgService } from './nm-org.service';
 import FuzzySearch from 'fuzzy-search';

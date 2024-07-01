@@ -1,3 +1,5 @@
+// export class NmOrgService
+
 import { ActiveStateType } from '../model/night-market.model';
 import { GSPREAD_CORE_ACTIVE_STATE_LIST } from '../nm-const';
 import { GoogleSpreadsheetsService } from '../service';

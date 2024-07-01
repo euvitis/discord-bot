@@ -1,3 +1,6 @@
+// export async function loadCommands
+// export async function publishCommands
+
 import {
     REST,
     Routes,
